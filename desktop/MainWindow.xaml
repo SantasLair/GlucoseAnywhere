@@ -1,0 +1,113 @@
+<Window x:Class="GlucoWatch.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:GlucoWatch"
+        Title="GlucoseAnywhere" Width="360" Height="300" MinWidth="240" MinHeight="170"
+        Background="#16181D" Foreground="#E6E6E6" FontFamily="Segoe UI"
+        Closing="Window_Closing" KeyDown="Window_KeyDown">
+    <Window.Resources>
+        <ControlTemplate x:Key="FlatTemplate" TargetType="ButtonBase">
+            <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Bd" Property="Background" Value="#22FFFFFF"/>
+                    <Setter Property="Foreground" Value="#E6E6E6"/>
+                </Trigger>
+                <Trigger Property="ToggleButton.IsChecked" Value="True">
+                    <Setter TargetName="Bd" Property="Background" Value="#33FFFFFF"/>
+                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+        <Style x:Key="Flat" TargetType="ButtonBase">
+            <Setter Property="Foreground" Value="#8A8F99"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Margin" Value="1,0"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template" Value="{StaticResource FlatTemplate}"/>
+        </Style>
+        <Style TargetType="RadioButton" BasedOn="{StaticResource Flat}">
+            <Setter Property="GroupName" Value="Range"/>
+            <EventSetter Event="Checked" Handler="Range_Checked"/>
+        </Style>
+        <Style x:Key="Icon" TargetType="ButtonBase" BasedOn="{StaticResource Flat}">
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="6,4"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Background="Transparent" MouseLeftButtonDown="Root_MouseLeftButtonDown">
+    <Grid.ContextMenu>
+        <ContextMenu>
+            <MenuItem x:Name="BigMenuItem" Header="_Big display" InputGestureText="Double-click" IsCheckable="True" Click="BigMenuItem_Click"/>
+            <MenuItem x:Name="FullScreenMenuItem" Header="_Full screen" InputGestureText="F11" IsCheckable="True" Click="FullScreenMenuItem_Click"/>
+            <MenuItem x:Name="PinMenuItem" Header="Keep on _top" IsCheckable="True" Click="PinMenuItem_Click"/>
+            <Separator/>
+            <MenuItem Header="_Refresh now" InputGestureText="F5" Click="Refresh_Click"/>
+            <MenuItem Header="_Settings…" Click="Settings_Click"/>
+        </ContextMenu>
+    </Grid.ContextMenu>
+
+    <Grid x:Name="BigView" Margin="16,8,16,12" Visibility="Collapsed">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="4*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Viewbox Stretch="Uniform">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="BigValueText" Text="---" FontSize="100" FontWeight="SemiBold"/>
+                <TextBlock x:Name="BigTrendText" FontSize="72" Margin="18,0,0,6" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Viewbox>
+        <Viewbox Grid.Row="1" Stretch="Uniform" MaxHeight="60">
+            <TextBlock x:Name="BigDetailText" FontSize="20" Foreground="#8A8F99"/>
+        </Viewbox>
+    </Grid>
+
+    <Grid x:Name="NormalView" Margin="14,8,14,8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock x:Name="ValueText" Text="---" FontSize="56" FontWeight="SemiBold"/>
+                <TextBlock x:Name="TrendText" FontSize="40" Margin="10,0,0,4" VerticalAlignment="Center"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <TextBlock x:Name="DeltaText" FontSize="18" HorizontalAlignment="Right"/>
+                <TextBlock x:Name="UnitsText" FontSize="12" Foreground="#8A8F99" HorizontalAlignment="Right"/>
+                <TextBlock x:Name="AgeText" FontSize="12" Foreground="#8A8F99" HorizontalAlignment="Right"/>
+            </StackPanel>
+        </Grid>
+
+        <local:GlucoseChart x:Name="Chart" Grid.Row="1" Margin="0,6,0,4"/>
+
+        <DockPanel Grid.Row="2">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <RadioButton x:Name="Range3" Content="3h" Tag="3"/>
+                <RadioButton x:Name="Range6" Content="6h" Tag="6"/>
+                <RadioButton x:Name="Range12" Content="12h" Tag="12"/>
+                <RadioButton x:Name="Range24" Content="24h" Tag="24"/>
+                <Button Style="{StaticResource Icon}" Content="&#xE8A3;" ToolTip="Big display (double-click)" Click="BigMenuItem_Click" Margin="6,0,1,0"/>
+                <Button Style="{StaticResource Icon}" Content="&#xE72C;" ToolTip="Refresh now" Click="Refresh_Click"/>
+                <ToggleButton x:Name="PinButton" Style="{StaticResource Icon}" Content="&#xE718;" ToolTip="Keep on top" Click="Pin_Click"/>
+                <Button Style="{StaticResource Icon}" Content="&#xE713;" ToolTip="Settings" Click="Settings_Click"/>
+            </StackPanel>
+            <TextBlock x:Name="StatusText" Foreground="#8A8F99" FontSize="11" VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis"/>
+        </DockPanel>
+    </Grid>
+    </Grid>
+</Window>

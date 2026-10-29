@@ -1,0 +1,73 @@
+<Window x:Class="GlucoWatch.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="GlucoseAnywhere Settings" Width="400" SizeToContent="Height"
+        ResizeMode="NoResize" WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        FontFamily="Segoe UI" FocusManager.FocusedElement="{Binding ElementName=UsernameBox}">
+    <StackPanel Margin="16">
+        <TextBlock TextWrapping="Wrap" Foreground="#555" Margin="0,0,0,12">
+            Sign in with the Dexcom account of the person wearing the G7 (the account that shares data).
+            Sharing must be turned on in their Dexcom G7 app with at least one follower.
+            Follower (Dexcom Follow app) logins do not work here.
+        </TextBlock>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+            </Grid.RowDefinitions>
+            <Grid.Resources>
+                <Style TargetType="Label">
+                    <Setter Property="Margin" Value="0,0,8,6"/>
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                </Style>
+                <Style TargetType="Control" x:Key="Field">
+                    <Setter Property="Margin" Value="0,0,0,6"/>
+                    <Setter Property="Padding" Value="3"/>
+                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                </Style>
+            </Grid.Resources>
+
+            <Label Content="_Username" Target="{Binding ElementName=UsernameBox}"/>
+            <TextBox x:Name="UsernameBox" Grid.Column="1" Style="{StaticResource Field}"
+                     ToolTip="Dexcom username, email address, or phone number (with country code, e.g. +15551234567)"/>
+
+            <Label Grid.Row="1" Content="_Password" Target="{Binding ElementName=PasswordBox}"/>
+            <PasswordBox x:Name="PasswordBox" Grid.Row="1" Grid.Column="1" Style="{StaticResource Field}"/>
+
+            <Label Grid.Row="2" Content="_Region" Target="{Binding ElementName=RegionBox}"/>
+            <ComboBox x:Name="RegionBox" Grid.Row="2" Grid.Column="1" Style="{StaticResource Field}">
+                <ComboBoxItem Content="United States"/>
+                <ComboBoxItem Content="Outside United States"/>
+                <ComboBoxItem Content="Japan"/>
+            </ComboBox>
+
+            <Label Grid.Row="3" Content="U_nits" Target="{Binding ElementName=UnitsBox}"/>
+            <ComboBox x:Name="UnitsBox" Grid.Row="3" Grid.Column="1" Style="{StaticResource Field}"
+                      SelectionChanged="UnitsBox_SelectionChanged">
+                <ComboBoxItem Content="mg/dL"/>
+                <ComboBoxItem Content="mmol/L"/>
+            </ComboBox>
+
+            <Label Grid.Row="4" Content="_Low below" Target="{Binding ElementName=LowBox}"/>
+            <TextBox x:Name="LowBox" Grid.Row="4" Grid.Column="1" Style="{StaticResource Field}"/>
+
+            <Label Grid.Row="5" Content="_High above" Target="{Binding ElementName=HighBox}"/>
+            <TextBox x:Name="HighBox" Grid.Row="5" Grid.Column="1" Style="{StaticResource Field}"/>
+        </Grid>
+
+        <TextBlock x:Name="ErrorText" Foreground="#C62828" TextWrapping="Wrap" Margin="0,4,0,0" Visibility="Collapsed"/>
+
+        <TextBlock TextWrapping="Wrap" Foreground="#555" FontSize="11" Margin="0,12,0,0">
+            GlucoseAnywhere is not affiliated with or endorsed by Dexcom. It is not a medical device and must not be used for treatment decisions or in place of the Dexcom app's alarms. It uses Dexcom's unofficial Share service, which can change or stop working at any time.
+        </TextBlock>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Save" IsDefault="True" Width="80" Padding="0,3" Margin="0,0,8,0" Click="Save_Click"/>
+            <Button Content="Cancel" IsCancel="True" Width="80" Padding="0,3"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

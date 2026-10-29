@@ -1,0 +1,6 @@
+dist/
+desktop/publish/
+desktop/bin/
+desktop/obj/
+.vs/
+*.user

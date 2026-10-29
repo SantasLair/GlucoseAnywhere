@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GlucoseAnywhere</title>
+<meta name="description" content="See your Dexcom glucose reading in any browser. Everything stays on your device.">
+<meta name="theme-color" content="#16181D">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GlucoseAnywhere">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<!-- Sign in -->
+<section id="auth" class="auth" hidden>
+  <form id="authForm" class="card auth-card" autocomplete="on">
+    <img class="auth-logo" src="icons/icon.svg" alt="" width="64" height="64">
+    <h1>GlucoseAnywhere</h1>
+    <p class="muted">See your Dexcom reading in any browser. Sign in with the Dexcom account of the <b>person wearing the sensor</b>. In the Dexcom app, Share must be on with at least one follower.</p>
+    <label class="field">Dexcom username
+      <input id="aUser" name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required>
+    </label>
+    <label class="field">Password
+      <input id="aPass" name="password" type="password" autocomplete="current-password" required>
+    </label>
+    <label class="field">Region
+      <select id="aRegion">
+        <option value="US">United States</option>
+        <option value="OutsideUS">Outside United States</option>
+        <option value="Japan">Japan</option>
+      </select>
+    </label>
+    <label class="check"><input id="aRemember" type="checkbox" checked><span>Remember me on this device</span></label>
+    <p id="authError" class="msg error" role="alert"></p>
+    <button id="authBtn" class="btn primary block" type="submit">Sign in</button>
+    <p class="small muted legal">Your sign-in is stored only in this browser and sent only to Dexcom. Not affiliated with Dexcom. Not a medical device. See <a href="#" id="authAbout">details</a>.</p>
+  </form>
+</section>
+
+<div id="app" hidden>
+  <main>
+    <!-- HOME -->
+    <section id="view-home" class="view">
+      <div id="banner" class="banner" hidden></div>
+      <div class="card glucose-card">
+        <button id="refreshBtn" class="icon-btn refresh" aria-label="Refresh">
+          <svg viewBox="0 0 24 24" width="22" height="22"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="bigBtn" class="big-reading" aria-label="Open big view">
+          <span id="gVal" class="gval">--</span><span id="gArrow" class="garrow"></span>
+        </button>
+        <div id="gMeta" class="gmeta"></div>
+      </div>
+      <div class="card chart-card">
+        <div class="seg" id="rangeTabs">
+          <button data-h="3">3h</button><button data-h="6">6h</button><button data-h="12">12h</button><button data-h="24">24h</button>
+        </div>
+        <div id="chart" class="chart"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="view-settings" class="view" hidden>
+      <h2 class="page-title">Settings</h2>
+
+      <div class="card">
+        <h3>Display</h3>
+        <label class="field">Units
+          <select id="sUnits"><option value="mgdl">mg/dL</option><option value="mmol">mmol/L</option></select>
+        </label>
+        <div class="two">
+          <label class="field">Low below <input id="sLow" type="text" inputmode="decimal"></label>
+          <label class="field">High above <input id="sHigh" type="text" inputmode="decimal"></label>
+        </div>
+        <p id="sError" class="msg error" role="alert"></p>
+      </div>
+
+      <div class="card">
+        <h3>Dexcom account</h3>
+        <p id="acctLine" class="muted small"></p>
+        <button id="signOutBtn" class="btn block">Sign out</button>
+        <p class="muted small">Signing out removes your sign-in from this device. Your reading history stays.</p>
+      </div>
+
+      <div class="card">
+        <h3>Your data</h3>
+        <p id="dataLine" class="muted small"></p>
+        <button id="csvBtn" class="btn block">Download readings (CSV)</button>
+        <button id="forgetBtn" class="btn danger block">Forget everything on this device</button>
+      </div>
+
+      <div class="card" id="installCard" hidden>
+        <h3>Install</h3>
+        <p class="muted small">Add GlucoseAnywhere to your home screen or desktop to open it like an app.</p>
+        <button id="installBtn" class="btn primary block">Install app</button>
+      </div>
+
+      <div class="card" id="about">
+        <h3>About</h3>
+        <p class="small about">
+          <b>Not a medical device.</b> GlucoseAnywhere is not affiliated with or endorsed by Dexcom. Don't use it to make treatment decisions or in place of the Dexcom app's alarms. It uses Dexcom's unofficial Share service, which can change or stop working at any time.
+        </p>
+        <p class="small about">
+          <b>Privacy.</b> Everything stays in this browser. Your sign-in and readings are stored on this device, and the only server this app talks to is Dexcom's, to sign in and fetch readings. There is no GlucoseAnywhere server, account or analytics.
+        </p>
+        <p class="small about">
+          <b>Your password is saved on this device</b> so the app can sign in again when Dexcom's session expires. Anyone who can use this browser profile can read it. On a shared computer, turn off "Remember me" or use "Forget everything" when you're done.
+        </p>
+        <p class="small about">
+          <b>Not synced.</b> Each browser or device keeps its own sign-in and history. Clearing site data deletes it.
+        </p>
+        <p class="small muted">GlucoseAnywhere <span id="ver"></span></p>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar" id="tabbar">
+    <button data-tab="home" class="active"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Home</span></button>
+    <button data-tab="settings"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>Settings</span></button>
+  </nav>
+
+  <!-- Big mode overlay -->
+  <div id="big" class="big" hidden>
+    <div class="big-main"><span id="bigVal"></span><span id="bigArrow"></span></div>
+    <div id="bigInfo" class="big-info"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

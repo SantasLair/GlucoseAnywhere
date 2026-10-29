@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>GlucoWatch</RootNamespace>
+    <AssemblyName>GlucoseAnywhere</AssemblyName>
+    <Product>GlucoseAnywhere</Product>
+    <AssemblyTitle>GlucoseAnywhere</AssemblyTitle>
+    <Version>1.0.0</Version>
+    <DebugType>none</DebugType>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="GlucoseAnywhere.Core/**;publish/**" />
+    <None Remove="GlucoseAnywhere.Core/**;publish/**" />
+    <Page Remove="GlucoseAnywhere.Core/**;publish/**" />
+    <ProjectReference Include="GlucoseAnywhere.Core/GlucoseAnywhere.Core.csproj" />
+  </ItemGroup>
+
+</Project>

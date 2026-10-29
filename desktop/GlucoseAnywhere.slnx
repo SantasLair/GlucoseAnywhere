@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="GlucoseAnywhere.Core/GlucoseAnywhere.Core.csproj" />
+  <Project Path="GlucoseAnywhere.csproj" />
+</Solution>
