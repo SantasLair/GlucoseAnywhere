@@ -47,7 +47,7 @@ function showAuth(message = '') {
   setMsg('authError', message);
 }
 
-$('authAbout').addEventListener('click', e => {
+for (const link of document.querySelectorAll('[data-verify]')) link.addEventListener('click', e => {
   e.preventDefault();
   $('auth').hidden = true;
   $('app').hidden = false;

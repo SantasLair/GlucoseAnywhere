@@ -3,8 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GlucoseAnywhere</title>
-<meta name="description" content="See your Dexcom glucose reading in any browser. Everything stays on your device.">
+<title>GlucoseAnywhere: big-screen glucose display for any device</title>
+<meta name="description" content="A free, no-setup, always-on glucose display for Dexcom Share. Works in any browser, in portrait or landscape. Your sign-in and readings stay on your device. Open source.">
+<link rel="canonical" href="https://glucoseanywhere.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="GlucoseAnywhere">
+<meta property="og:title" content="GlucoseAnywhere: big-screen glucose display for any device">
+<meta property="og:description" content="Turn any tablet, phone or PC into an always-on glucose display. Free, open source, and your data never leaves your device.">
+<meta property="og:url" content="https://glucoseanywhere.com/">
+<meta property="og:image" content="https://glucoseanywhere.com/icons/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="GlucoseAnywhere: big-screen glucose display for any device">
+<meta name="twitter:description" content="Turn any tablet, phone or PC into an always-on glucose display. Free, open source, and your data never leaves your device.">
 <meta name="theme-color" content="#16181D">
 <meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -40,9 +50,40 @@
     <label class="check"><input id="aRemember" type="checkbox" checked><span>Remember me on this device</span></label>
     <p id="authError" class="msg error" role="alert"></p>
     <button id="authBtn" class="btn primary block" type="submit">Sign in</button>
-    <p class="small muted legal">Your sign-in is stored only in this browser and sent only to Dexcom. Not affiliated with Dexcom. Not a medical device. See <a href="#" id="authAbout">how to verify this</a> or read the <a href="https://github.com/SantasLair/glucoseanywhere" target="_blank" rel="noopener noreferrer">source code</a>.</p>
+    <p class="small muted legal">Your sign-in is stored only in this browser and sent only to Dexcom. Not affiliated with Dexcom. Not a medical device. See <a href="#" data-verify>how to verify this</a> or read the <a href="https://github.com/SantasLair/glucoseanywhere" target="_blank" rel="noopener noreferrer">source code</a>.</p>
   </form>
+
+  <div class="landing">
+    <h2>A big, always-on glucose display</h2>
+    <p>GlucoseAnywhere shows the current reading from a Dexcom sensor, with a trend arrow and a chart, on any phone, tablet or computer. Put a spare tablet on the wall or desk, or keep it open on a PC.</p>
+
+    <ul class="features">
+      <li><b>Big-number mode</b> fills the screen and keeps it awake, in portrait or landscape.</li>
+      <li><b>Nothing to install or host.</b> It runs in any modern browser, and you can add it to your home screen like an app.</li>
+      <li><b>Free, no ads, no account.</b> Open source under the MIT license.</li>
+    </ul>
+
+    <div class="shots">
+      <figure><img src="img/home.png" alt="Home screen showing a glucose reading of 112 with a chart" width="260" height="333" loading="lazy"><figcaption>Home screen (sample data)</figcaption></figure>
+      <figure><img src="img/big.png" alt="Big-number mode showing 112 across the whole screen" width="400" height="185" loading="lazy"><figcaption>Big-number mode (sample data)</figcaption></figure>
+    </div>
+
+    <h3>What you need</h3>
+    <p>The Dexcom account of the <b>person wearing the sensor</b>, with Share turned on and at least one follower in the Dexcom app. A follower's login won't work.</p>
+
+    <h3>Your privacy</h3>
+    <p>Your sign-in and readings are stored on your own device. There is no GlucoseAnywhere server, account, ad or tracking. The only servers the app talks to are Dexcom's, to sign in and fetch readings. You don't have to take our word for it: <a href="#" data-verify>here's how to check</a>, and the <a href="https://github.com/SantasLair/GlucoseAnywhere" target="_blank" rel="noopener noreferrer">source code</a> is public.</p>
+
+    <h3>Important</h3>
+    <p><b>Not a medical device.</b> Don't use it to make treatment decisions or in place of the Dexcom app's alarms. It has no alerts. GlucoseAnywhere is not affiliated with or endorsed by Dexcom, and it uses Dexcom's unofficial Share service, which can change or stop working at any time.</p>
+
+    <p class="small muted foot">MIT licensed · <a href="https://github.com/SantasLair/GlucoseAnywhere" target="_blank" rel="noopener noreferrer">GitHub</a> · <a href="https://github.com/SantasLair/GlucoseAnywhere/issues" target="_blank" rel="noopener noreferrer">Report a problem</a></p>
+  </div>
 </section>
+
+<noscript>
+  <p class="nojs">GlucoseAnywhere is a free, open-source glucose display for Dexcom Share. It needs JavaScript to run in your browser. Nothing is sent to us: your sign-in and readings stay on your device.</p>
+</noscript>
 
 <div id="app" hidden>
   <main>
