@@ -1,6 +1,7 @@
 {
   // Cloudflare Worker that serves the static web app in web/ (including web/_headers).
   // Deploy: npx wrangler deploy   (Cloudflare also runs this on every push to master)
+  // www.glucoseanywhere.com is handled by redirect-www/ (it redirects to the bare domain).
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "glucoseanywhere",
   "compatibility_date": "2026-10-01",
@@ -11,7 +12,6 @@
   "workers_dev": true,
   "preview_urls": true,
   "routes": [
-    { "pattern": "glucoseanywhere.com", "custom_domain": true },
-    { "pattern": "www.glucoseanywhere.com", "custom_domain": true }
+    { "pattern": "glucoseanywhere.com", "custom_domain": true }
   ]
 }
