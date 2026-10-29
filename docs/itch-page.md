@@ -40,7 +40,7 @@ GlucoseAnywhere shows your current reading, trend arrow and a 3, 6, 12 or 24 hou
 
 ## Made for a wall or desk display
 
-Put a spare tablet, old phone or monitor to work as an always-on readout. Big-number mode fills the screen, keeps the display awake, and can open automatically every time the app starts. A stray tap won't close it: tapping only shows the controls. Works in portrait and landscape.
+Put a spare tablet, old phone or monitor to work as an always-on readout. Choose **big-number mode** (the reading fills the window) or **chart view** (a small reading above a graph that fills the screen, like a CGM's own display). A **Stay awake** setting keeps the screen on, and the app can open straight into either view every time it starts. A stray tap won't close big mode: tapping only shows the controls. Works in portrait and landscape, with light and dark themes.
 
 ## Two ways to use it
 

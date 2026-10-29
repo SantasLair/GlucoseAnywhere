@@ -11,7 +11,7 @@ const DB_NAME = 'glucoseanywhere';
 const STORE = 'readings';
 const KEEP_MS = 90 * 24 * 3600e3;
 
-export const DEFAULT_PREFS = { useMmol: false, low: 70, high: 180, range: 6, startBig: false, theme: 'auto' };
+export const DEFAULT_PREFS = { useMmol: false, low: 70, high: 180, range: 6, startBig: false, theme: 'auto', layout: 'standard', stayAwake: true };
 
 const read = (area, key) => { try { return JSON.parse(area.getItem(key)); } catch { return null; } };
 const write = (area, key, value) => { try { area.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ } };

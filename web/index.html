@@ -59,6 +59,7 @@
     <p>GlucoseAnywhere shows the current reading from a Dexcom sensor, with a trend arrow and a chart, on any phone, tablet or computer. Put a spare tablet on the wall or desk, or keep it open on a PC.</p>
 
     <ul class="features">
+      <li><b>Chart view</b> puts the graph first, with a small reading above it, like a CGM display.</li>
       <li><b>Big-number mode</b> fills the window and keeps the screen awake, in portrait or landscape. Go fullscreen when you want to.</li>
       <li><b>Light and dark themes,</b> and a layout that uses the whole window on a desktop.</li>
       <li><b>Nothing to install or host.</b> It runs in any modern browser, and you can add it to your home screen like an app.</li>
@@ -93,12 +94,20 @@
     <section id="view-home" class="view">
       <div id="banner" class="banner" hidden></div>
       <div class="card glucose-card">
-        <button id="refreshBtn" class="icon-btn refresh" aria-label="Refresh">
-          <svg viewBox="0 0 24 24" width="22" height="22"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <button id="bigIconBtn" class="icon-btn expand" aria-label="Big number mode">
-          <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
+        <div class="card-tools">
+          <button id="layoutBtn" class="icon-btn" aria-label="Switch to chart view" title="Chart view (C)">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 4v16h16M7 15l3.5-4 3 2.5L19 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button id="fsBtn" class="icon-btn" aria-label="Fullscreen" title="Fullscreen (F)" hidden>
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button id="bigIconBtn" class="icon-btn" aria-label="Big number mode" title="Big number (B)">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button id="refreshBtn" class="icon-btn refresh" aria-label="Refresh" title="Refresh (R)">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
         <button id="bigBtn" class="big-reading" aria-label="Open big view">
           <span id="gVal" class="gval">--</span><span id="gArrow" class="garrow"></span>
         </button>
@@ -134,7 +143,11 @@
       <div class="card">
         <h3>Wall display</h3>
         <p class="muted small">Use a spare tablet or screen as an always-on readout. Tap the expand button on the home screen for big-number mode. It fills the window; tap the screen to show its controls, including Fullscreen.</p>
-        <p class="muted small">Keyboard: <b>B</b> big number, <b>F</b> fullscreen, <b>R</b> refresh, <b>Esc</b> close.</p>
+        <p class="muted small">Keyboard: <b>C</b> chart view, <b>B</b> big number, <b>F</b> fullscreen, <b>R</b> refresh, <b>Esc</b> close. Open <b>glucoseanywhere.com/#chart</b> to start in chart view.</p>
+        <label class="field">Home screen layout
+          <select id="sLayout"><option value="standard">Reading and chart</option><option value="chart">Chart view (small reading, big graph)</option></select>
+        </label>
+        <label class="check"><input id="sStayAwake" type="checkbox"><span>Stay awake: keep the screen on in big-number and chart views</span></label>
         <label class="check"><input id="sStartBig" type="checkbox"><span>Open in big-number mode when the app starts</span></label>
         <p id="wakeStatus" class="muted small"></p>
         <p id="fsStatus" class="muted small"></p>
@@ -142,7 +155,7 @@
           <summary>Setup tips for a wall or desk tablet</summary>
           <ul>
             <li><b>Install it.</b> Android: Chrome menu, <b>Add to Home screen</b> (or Install app). iPad: Share, <b>Add to Home Screen</b>. It then opens without browser bars.</li>
-            <li><b>Keep it awake.</b> Big mode asks the browser to keep the screen on. If the status above says it can't, set the device's screen timeout to Never (Android: Settings, Display; iPad: Settings, Display &amp; Brightness, Auto-Lock) and leave it plugged in.</li>
+            <li><b>Keep it awake.</b> With Stay awake on, big-number and chart views ask the browser to keep the screen on. If the status above says it can't, set the device's screen timeout to Never (Android: Settings, Display; iPad: Settings, Display &amp; Brightness, Auto-Lock) and leave it plugged in.</li>
             <li><b>Lock it to the app.</b> iPad: Guided Access (Settings, Accessibility). Android: Screen pinning. This stops accidental exits.</li>
             <li><b>Auto-start.</b> Turn on the option above, and the app will open straight to the big number each time. Android also has a "Big display" shortcut when you long-press the app icon.</li>
             <li><b>Dim it at night</b> with the device's brightness setting. The big display is black, so it's easy on the eyes and on OLED screens.</li>

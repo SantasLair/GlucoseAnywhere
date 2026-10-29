@@ -27,6 +27,7 @@ let lastFetch = 0;
 let pollTimer = null, ageTimer = null;
 
 if (!['auto', 'light', 'dark'].includes(prefs.theme)) prefs.theme = 'auto';
+if (!['standard', 'chart'].includes(prefs.layout)) prefs.layout = 'standard';
 
 // ---------------------------------------------------------------- theme
 // Colours live in CSS variables (app.css), so switching themes only has to set data-theme.
@@ -59,6 +60,7 @@ function toast(msg, isError = false) {
 function showAuth(message = '') {
   stopPolling();
   if (!$('big').hidden) exitBig();
+  setTimeout(syncWakeLock, 0);
   $('app').hidden = true;
   $('auth').hidden = false;
   setMsg('authError', message);
@@ -125,8 +127,28 @@ async function enterApp() {
   startPolling();
   fetchNow();
   pruneReadings();
+  if (location.hash === '#chart') setLayout('chart');
   if (prefs.startBig || location.hash === '#big') enterBig(false);
 }
+
+// ---------------------------------------------------------------- layout
+/** Standard: big reading beside/above the chart. Chart: small reading in a header, graph fills the rest. */
+function applyLayout() {
+  const chart = prefs.layout === 'chart';
+  $('view-home').classList.toggle('chart-focus', chart);
+  $('layoutBtn').setAttribute('aria-label', chart ? 'Switch to the reading view' : 'Switch to chart view');
+  $('layoutBtn').title = chart ? 'Reading view (C)' : 'Chart view (C)';
+  $('fsBtn').hidden = !(chart && fsEnabled());
+  if (!$('app').hidden && tab === 'home') renderHome();
+  syncWakeLock();
+}
+function setLayout(layout) {
+  prefs.layout = layout;
+  savePrefs(prefs);
+  applyLayout();
+}
+$('layoutBtn').addEventListener('click', () => setLayout(prefs.layout === 'chart' ? 'standard' : 'chart'));
+$('fsBtn').addEventListener('click', () => { if (fsElement()) fsExit(); else fsEnter(); });
 
 // ---------------------------------------------------------------- tabs
 function showTab(name) {
@@ -136,6 +158,7 @@ function showTab(name) {
   window.scrollTo(0, 0);
   if (name === 'home') renderHome();
   if (name === 'settings') renderSettings();
+  syncWakeLock();
 }
 $('tabbar').addEventListener('click', e => {
   const b = e.target.closest('button[data-tab]');
@@ -198,7 +221,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible' || $('app').hidden) return;
   if (nowMs() - lastFetch > 30000) fetchNow();
   renderAll();
-  if (!$('big').hidden) requestWakeLock();
+  syncWakeLock();
 });
 window.addEventListener('online', () => { if (!$('app').hidden) fetchNow(); });
 
@@ -284,16 +307,25 @@ const fsExit = () => { try { return (document.exitFullscreen || document.webkitE
 
 /** Ask the browser to keep the screen on. The browser drops the lock when the page is hidden or
  *  the battery is low, so it's re-requested whenever it's released while big mode is still open. */
+// Stay awake (a setting of its own) applies to the two display views: big number and chart view.
+const wantAwake = () => !$('app').hidden && prefs.stayAwake && (!$('big').hidden || (prefs.layout === 'chart' && tab === 'home'));
+
 async function requestWakeLock() {
-  if (!navigator.wakeLock || wakeLock || document.visibilityState !== 'visible' || $('big').hidden) return;
+  if (!navigator.wakeLock || wakeLock || document.visibilityState !== 'visible' || !wantAwake()) return;
   try {
     const lock = await navigator.wakeLock.request('screen');
     wakeLock = lock;
     lock.addEventListener('release', () => {
       if (wakeLock === lock) wakeLock = null;
-      if (!$('big').hidden) setTimeout(requestWakeLock, 1000);
+      if (wantAwake()) setTimeout(requestWakeLock, 1000);
     });
   } catch { /* unsupported or denied */ }
+}
+
+/** Take or drop the screen wake lock to match what the current view needs. */
+function syncWakeLock() {
+  if (wantAwake()) requestWakeLock();
+  else if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
 }
 
 function showBar(ms = 5000) {
@@ -315,7 +347,7 @@ function enterBig(userOpened) {
   renderBig();
   updateFsButton();
   showBar(userOpened ? 3000 : 10000);
-  requestWakeLock();
+  syncWakeLock();
 }
 
 function exitBig() {
@@ -323,8 +355,7 @@ function exitBig() {
   $('bigBar').hidden = true;
   clearTimeout(barTimer);
   if (fsElement()) fsExit();
-  wakeLock?.release().catch(() => {});
-  wakeLock = null;
+  syncWakeLock();
   if (location.hash === '#big') history.replaceState(null, '', location.pathname + location.search);
 }
 
@@ -366,9 +397,12 @@ function renderSettings() {
     : 'Not signed in.';
   $('ver').textContent = `v${VERSION}`;
   $('sStartBig').checked = !!prefs.startBig;
+  $('sLayout').value = prefs.layout;
+  $('sStayAwake').checked = !!prefs.stayAwake;
+  $('sStayAwake').disabled = !navigator.wakeLock;
   $('wakeStatus').textContent = navigator.wakeLock
-    ? 'Stay awake: this browser can keep the screen on while big mode is open.'
-    : "Stay awake: this browser can't keep the screen on. Set the device's screen timeout to Never.";
+    ? 'This browser can keep the screen on while the big number or chart view is open.'
+    : "This browser can't keep the screen on, so Stay awake is unavailable. Set the device's screen timeout to Never instead.";
   $('fsStatus').textContent = fsEnabled()
     ? 'Fullscreen: supported. Use the Fullscreen button in big mode.'
     : 'Fullscreen: not supported here. Add the app to your home screen to hide the browser bars.';
@@ -376,6 +410,8 @@ function renderSettings() {
 }
 
 $('sStartBig').addEventListener('change', e => { prefs.startBig = e.target.checked; savePrefs(prefs); });
+$('sLayout').addEventListener('change', e => setLayout(e.target.value));
+$('sStayAwake').addEventListener('change', e => { prefs.stayAwake = e.target.checked; savePrefs(prefs); syncWakeLock(); });
 
 function renderDataLine() {
   if (!readings.length) { $('dataLine').textContent = 'No readings stored on this device yet.'; return; }
@@ -460,10 +496,12 @@ document.addEventListener('keydown', e => {
   const bigOpen = !$('big').hidden;
   if (key === 'escape') {
     if (bigOpen && !fsElement()) exitBig();      // the first Esc leaves fullscreen (the browser handles it)
+  } else if (key === 'c' && !bigOpen) {
+    setLayout(prefs.layout === 'chart' ? 'standard' : 'chart');
   } else if (key === 'b') {
     if (bigOpen) exitBig(); else enterBig(true);
   } else if (key === 'f') {
-    if (!bigOpen) enterBig(true);
+    if (!bigOpen && prefs.layout !== 'chart') enterBig(true);
     if (fsElement()) fsExit(); else fsEnter();
   } else if (key === 'r' && !bigOpen) {
     if (status.state === 'auth') showTab('settings'); else fetchNow();
@@ -492,6 +530,7 @@ function boot() {
   for (const el of document.querySelectorAll('input[inputmode=decimal]')) {
     el.addEventListener('focus', () => setTimeout(() => el.select(), 0));
   }
+  applyLayout();
   creds = loadCreds();
   if (creds) enterApp(); else showAuth();
 }

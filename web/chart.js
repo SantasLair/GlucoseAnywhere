@@ -5,13 +5,14 @@ import { fmtGlucoseNum } from './format.js';
 
 // Desktop and tablet-landscape windows: the chart fills the space the layout gives it.
 const FILL = window.matchMedia('(min-width: 900px) and (min-height: 600px)');
-export const chartFills = () => FILL.matches;
+// The chart view also fills its card, on any screen size.
+export const chartFills = () => FILL.matches || !!document.querySelector('.chart-focus');
 
 /** o: { readings, hours, now, low, high, mmol } */
 export function drawChart(el, o) {
   const W = Math.max(el.clientWidth, 280);
   // Otherwise: a phone on its side has little height to share with the range tabs and tab bar, so fit to what's left.
-  const H = FILL.matches ? Math.max(el.clientHeight, 160) : window.innerHeight < 500 ? Math.max(150, window.innerHeight - 200) : 220;
+  const H = chartFills() ? Math.max(el.clientHeight, 160) : window.innerHeight < 500 ? Math.max(150, window.innerHeight - 200) : 220;
   const k = Math.min(1.8, Math.max(1, W / 600));        // bigger text and dots on a big chart
   const fs = Math.round(11 * k);
   const m = { l: 6, r: Math.round(40 * Math.min(k, 1.5)), t: 12, b: Math.round(24 * Math.min(k, 1.5)) };
