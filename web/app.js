@@ -288,6 +288,7 @@ function renderBig() {
 }
 
 $('bigBtn').addEventListener('click', enterBig);
+$('bigIconBtn').addEventListener('click', enterBig);
 $('big').addEventListener('click', exitBig);
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && !$('big').hidden) exitBig(); });
 

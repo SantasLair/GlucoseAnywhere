@@ -5,7 +5,9 @@ const COLORS = { ok: '#4CC38A', high: '#F2B33D', low: '#EF5350' };
 
 /** o: { readings, hours, now, low, high, mmol } */
 export function drawChart(el, o) {
-  const W = Math.max(el.clientWidth, 280), H = 220;
+  // A phone on its side has little height to share with the range tabs and tab bar, so fit to what's left.
+  const W = Math.max(el.clientWidth, 280);
+  const H = window.innerHeight < 500 ? Math.max(150, window.innerHeight - 200) : 220;
   const m = { l: 6, r: 40, t: 12, b: 24 };
   const end = o.now, start = end - o.hours * 3600e3;
   const vis = o.readings.filter(r => r.t >= start && r.t <= end);

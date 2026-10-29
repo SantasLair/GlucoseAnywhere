@@ -79,6 +79,7 @@ input:focus, select:focus { border-color: var(--accent); }
 .banner button { color: var(--accent); font-weight: 600; min-height: 44px; white-space: nowrap; }
 .glucose-card { position: relative; text-align: center; padding: 14px 12px 16px; }
 .refresh { position: absolute; top: 6px; right: 6px; }
+.expand { position: absolute; top: 6px; left: 6px; }
 .refresh.spin svg { animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .big-reading { display: inline-flex; align-items: baseline; justify-content: center; min-height: 44px; max-width: 100%; padding: 0 8px; line-height: 1; }
@@ -125,6 +126,30 @@ input:focus, select:focus { border-color: var(--accent); }
 .big-main.stale #bigVal { text-decoration: line-through; }
 .big-info { margin-top: 3vh; font-size: clamp(16px, min(4.2vw, 5vh), 30px); color: var(--muted); padding: 0 12px; }
 .big-info b { color: var(--text); font-weight: 600; }
+
+/* Landscape: the big number can use far more of the screen. */
+@media (orientation: landscape) {
+  .big-main { font-size: min(calc(90vw / (var(--n) * 0.58 + 0.7)), 66vh); }
+  .big-main.word { font-size: min(calc(90vw / (var(--n) * 0.66 + 0.2)), 66vh); }
+  .big-info { margin-top: 2vh; font-size: clamp(14px, 5vh, 28px); }
+}
+
+/* A phone on its side: reading on the left, chart on the right, slimmer tab bar. */
+@media (orientation: landscape) and (max-height: 600px) {
+  :root { --tabbar-h: 48px; }
+  #app, .tabbar { max-width: none; }
+  .view { padding-top: calc(var(--sat) + 8px); }
+  #view-home { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 0 12px; align-content: start; }
+  #view-home .banner { grid-column: 1 / -1; }
+  #view-home .card { margin-bottom: 0; }
+  .glucose-card { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .gval { font-size: min(104px, 30vh); }
+  .gval.word { font-size: min(80px, 24vh); }
+  .garrow { font-size: min(56px, 17vh); }
+  #view-settings, #view-about { max-width: 640px; margin: 0 auto; }
+  .tabbar button { flex-direction: row; justify-content: center; gap: 8px; font-size: 13px; }
+  .tabbar svg { width: 22px; height: 22px; }
+}
 
 .toast { position: fixed; left: 50%; bottom: calc(var(--tabbar-h) + var(--sab) + 24px); transform: translate(-50%, 20px); background: var(--raised); color: var(--text); padding: 10px 18px; border-radius: 22px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 60; box-shadow: 0 6px 20px rgba(0,0,0,.5); font-weight: 600; max-width: 90vw; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
