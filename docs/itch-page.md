@@ -36,7 +36,7 @@ For later releases, bump the version in `--userversion` and push again. itch.io 
 ```markdown
 **See your Dexcom glucose reading on any screen: a phone, a PC, a TV, a wall display.**
 
-GlucoseAnywhere shows your current reading, trend arrow and a 3, 6, 12 or 24 hour chart. Tap the number (double-click on Windows) for a big, always-on display. It's free, has no ads, and sets up in about 30 seconds.
+GlucoseAnywhere shows your current reading, trend arrow and a 3, 6, 12 or 24 hour chart, in a light or dark theme. Tap the expand button (double-click the number on Windows) for a big, always-on display. It's free, has no ads, and sets up in about 30 seconds.
 
 ## Made for a wall or desk display
 

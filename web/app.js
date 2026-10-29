@@ -1,5 +1,5 @@
 import { DexcomClient, DexcomError } from './dexcom.js';
-import { drawChart } from './chart.js';
+import { drawChart, chartFills } from './chart.js';
 import {
   loadPrefs, savePrefs, loadCreds, saveCreds, clearCreds,
   putReadings, getReadings, pruneReadings, forgetEverything, describeStorage,
@@ -25,6 +25,23 @@ let tab = 'home';
 let fetching = false;
 let lastFetch = 0;
 let pollTimer = null, ageTimer = null;
+
+if (!['auto', 'light', 'dark'].includes(prefs.theme)) prefs.theme = 'auto';
+
+// ---------------------------------------------------------------- theme
+// Colours live in CSS variables (app.css), so switching themes only has to set data-theme.
+// theme.js does the same thing before first paint; this keeps it in sync after a change.
+const lightQuery = window.matchMedia('(prefers-color-scheme: light)');
+const THEME_COLOR = { light: '#F4F5F7', dark: '#16181D' };
+
+function applyTheme() {
+  if (prefs.theme === 'auto') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', prefs.theme);
+  const effective = prefs.theme === 'auto' ? (lightQuery.matches ? 'light' : 'dark') : prefs.theme;
+  document.querySelector('meta[name=theme-color]')?.setAttribute('content', THEME_COLOR[effective]);
+}
+lightQuery.addEventListener?.('change', applyTheme);
+applyTheme();
 
 const setMsg = (id, text = '') => { $(id).textContent = text; };
 const nowMs = () => Date.now();
@@ -249,6 +266,10 @@ $('rangeTabs').addEventListener('click', e => {
   renderHome();
 });
 window.addEventListener('resize', () => { if (!$('app').hidden && tab === 'home') renderHome(); });
+// On a desktop window the chart fills its card, so redraw whenever that box changes size.
+if ('ResizeObserver' in window) {
+  new ResizeObserver(() => { if (!$('app').hidden && tab === 'home' && chartFills()) renderHome(); }).observe($('chart'));
+}
 
 // ---------------------------------------------------------------- big mode
 let wakeLock = null;
@@ -286,13 +307,14 @@ function updateFsButton() {
   $('bigFs').textContent = fsElement() ? 'Exit fullscreen' : 'Fullscreen';
 }
 
-/** `gesture` is true when the user just tapped, which browsers require before allowing fullscreen. */
-function enterBig(gesture) {
+/** Opens the big number in the window. It never goes fullscreen by itself: the Fullscreen button
+ *  (or the F key) does that on request. The controls show briefly so that option is discoverable,
+ *  and longer when the app started in big mode on its own. */
+function enterBig(userOpened) {
   $('big').hidden = false;
   renderBig();
   updateFsButton();
-  if (gesture) fsEnter();
-  else showBar(10000);          // auto-started: show the controls so fullscreen is one tap away
+  showBar(userOpened ? 3000 : 10000);
   requestWakeLock();
 }
 
@@ -335,6 +357,7 @@ for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEve
 // ---------------------------------------------------------------- settings
 function renderSettings() {
   setMsg('sError');
+  $('sTheme').value = prefs.theme;
   $('sUnits').value = prefs.useMmol ? 'mmol' : 'mgdl';
   $('sLow').value = fmtGlucoseNum(prefs.low, prefs.useMmol);
   $('sHigh').value = fmtGlucoseNum(prefs.high, prefs.useMmol);
@@ -358,6 +381,12 @@ function renderDataLine() {
   if (!readings.length) { $('dataLine').textContent = 'No readings stored on this device yet.'; return; }
   $('dataLine').textContent = `${readings.length} readings from the last 24 hours are shown. Older readings are kept on this device for up to 90 days.`;
 }
+
+$('sTheme').addEventListener('change', e => {
+  prefs.theme = e.target.value;
+  savePrefs(prefs);
+  applyTheme();
+});
 
 $('sUnits').addEventListener('change', e => {
   prefs.useMmol = e.target.value === 'mmol';
@@ -421,6 +450,24 @@ $('forgetBtn').addEventListener('click', async () => {
   status = { state: 'none', message: '' };
   showAuth();
   toast('Everything was removed from this device.');
+});
+
+// ---------------------------------------------------------------- keyboard
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || $('app').hidden) return;
+  if (e.target.closest?.('input, select, textarea')) return;
+  const key = e.key.toLowerCase();
+  const bigOpen = !$('big').hidden;
+  if (key === 'escape') {
+    if (bigOpen && !fsElement()) exitBig();      // the first Esc leaves fullscreen (the browser handles it)
+  } else if (key === 'b') {
+    if (bigOpen) exitBig(); else enterBig(true);
+  } else if (key === 'f') {
+    if (!bigOpen) enterBig(true);
+    if (fsElement()) fsExit(); else fsEnter();
+  } else if (key === 'r' && !bigOpen) {
+    if (status.state === 'auth') showTab('settings'); else fetchNow();
+  }
 });
 
 // ---------------------------------------------------------------- install

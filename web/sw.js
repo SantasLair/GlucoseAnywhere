@@ -2,7 +2,7 @@
 // Requests to Dexcom are cross-origin and never touched here.
 const CACHE = 'glucoseanywhere-shell-v1';
 const SHELL = [
-  './', 'index.html', 'app.css', 'app.js', 'dexcom.js', 'store.js', 'format.js', 'chart.js',
+  './', 'index.html', 'app.css', 'app.js', 'theme.js', 'dexcom.js', 'store.js', 'format.js', 'chart.js',
   'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png',
   'icons/apple-touch-icon.png', 'icons/icon.svg',

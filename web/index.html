@@ -16,7 +16,7 @@
 <meta name="twitter:title" content="GlucoseAnywhere: big-screen glucose display for any device">
 <meta name="twitter:description" content="Turn any tablet, phone or PC into an always-on glucose display. Free, open source, and your data never leaves your device.">
 <meta name="theme-color" content="#16181D">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="dark light">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -24,6 +24,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<script src="theme.js"></script>
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
@@ -58,7 +59,8 @@
     <p>GlucoseAnywhere shows the current reading from a Dexcom sensor, with a trend arrow and a chart, on any phone, tablet or computer. Put a spare tablet on the wall or desk, or keep it open on a PC.</p>
 
     <ul class="features">
-      <li><b>Big-number mode</b> fills the screen and keeps it awake, in portrait or landscape.</li>
+      <li><b>Big-number mode</b> fills the window and keeps the screen awake, in portrait or landscape. Go fullscreen when you want to.</li>
+      <li><b>Light and dark themes,</b> and a layout that uses the whole window on a desktop.</li>
       <li><b>Nothing to install or host.</b> It runs in any modern browser, and you can add it to your home screen like an app.</li>
       <li><b>Free, no ads, no account.</b> Open source under the MIT license.</li>
     </ul>
@@ -116,6 +118,9 @@
 
       <div class="card">
         <h3>Display</h3>
+        <label class="field">Theme
+          <select id="sTheme"><option value="auto">Auto (match this device)</option><option value="light">Light</option><option value="dark">Dark</option></select>
+        </label>
         <label class="field">Units
           <select id="sUnits"><option value="mgdl">mg/dL</option><option value="mmol">mmol/L</option></select>
         </label>
@@ -128,7 +133,8 @@
 
       <div class="card">
         <h3>Wall display</h3>
-        <p class="muted small">Use a spare tablet or screen as an always-on readout. Tap the expand button on the home screen for big-number mode. Tap the screen to show its controls.</p>
+        <p class="muted small">Use a spare tablet or screen as an always-on readout. Tap the expand button on the home screen for big-number mode. It fills the window; tap the screen to show its controls, including Fullscreen.</p>
+        <p class="muted small">Keyboard: <b>B</b> big number, <b>F</b> fullscreen, <b>R</b> refresh, <b>Esc</b> close.</p>
         <label class="check"><input id="sStartBig" type="checkbox"><span>Open in big-number mode when the app starts</span></label>
         <p id="wakeStatus" class="muted small"></p>
         <p id="fsStatus" class="muted small"></p>

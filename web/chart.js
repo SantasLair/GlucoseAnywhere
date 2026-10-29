@@ -1,14 +1,20 @@
 // Glucose chart: inline SVG, rebuilt on every render.
+// Colours come from CSS classes (see app.css) so the chart follows the light/dark theme;
+// inline style attributes are blocked by the page's Content-Security-Policy.
 import { fmtGlucoseNum } from './format.js';
 
-const COLORS = { ok: '#4CC38A', high: '#F2B33D', low: '#EF5350' };
+// Desktop and tablet-landscape windows: the chart fills the space the layout gives it.
+const FILL = window.matchMedia('(min-width: 900px) and (min-height: 600px)');
+export const chartFills = () => FILL.matches;
 
 /** o: { readings, hours, now, low, high, mmol } */
 export function drawChart(el, o) {
-  // A phone on its side has little height to share with the range tabs and tab bar, so fit to what's left.
   const W = Math.max(el.clientWidth, 280);
-  const H = window.innerHeight < 500 ? Math.max(150, window.innerHeight - 200) : 220;
-  const m = { l: 6, r: 40, t: 12, b: 24 };
+  // Otherwise: a phone on its side has little height to share with the range tabs and tab bar, so fit to what's left.
+  const H = FILL.matches ? Math.max(el.clientHeight, 160) : window.innerHeight < 500 ? Math.max(150, window.innerHeight - 200) : 220;
+  const k = Math.min(1.8, Math.max(1, W / 600));        // bigger text and dots on a big chart
+  const fs = Math.round(11 * k);
+  const m = { l: 6, r: Math.round(40 * Math.min(k, 1.5)), t: 12, b: Math.round(24 * Math.min(k, 1.5)) };
   const end = o.now, start = end - o.hours * 3600e3;
   const vis = o.readings.filter(r => r.t >= start && r.t <= end);
 
@@ -22,7 +28,7 @@ export function drawChart(el, o) {
   let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Glucose chart">`;
 
   // Target band
-  s += `<rect x="${m.l}" y="${y(o.high)}" width="${plotR - m.l}" height="${y(o.low) - y(o.high)}" fill="#4CC38A" opacity="0.12"/>`;
+  s += `<rect class="c-band" x="${m.l}" y="${y(o.high)}" width="${plotR - m.l}" height="${y(o.low) - y(o.high)}" opacity="0.14"/>`;
 
   // Hourly gridlines + labels
   const step = o.hours <= 6 ? 1 : o.hours <= 12 ? 2 : 4;
@@ -32,21 +38,21 @@ export function drawChart(el, o) {
     const px = x(t).toFixed(1);
     if (px < m.l + 14) continue;      // a label this close to the left edge would be clipped
     const label = new Date(t).toLocaleTimeString([], { hour: 'numeric' });
-    s += `<line x1="${px}" y1="${m.t}" x2="${px}" y2="${plotB}" stroke="#2F333B" stroke-width="1"/>`;
-    s += `<text x="${px}" y="${H - 7}" text-anchor="middle" font-size="11" fill="#8A8F99">${label}</text>`;
+    s += `<line class="c-grid" x1="${px}" y1="${m.t}" x2="${px}" y2="${plotB}" stroke-width="1"/>`;
+    s += `<text class="c-lbl" x="${px}" y="${H - 7}" text-anchor="middle" font-size="${fs}">${label}</text>`;
   }
 
   // Low/high lines with labels on the right
-  for (const v of [o.low, o.high]) {
-    s += `<line x1="${m.l}" y1="${y(v)}" x2="${plotR}" y2="${y(v)}" stroke="${v === o.low ? COLORS.low : COLORS.high}" stroke-width="1" stroke-dasharray="4 4" opacity="0.7"/>`;
-    s += `<text x="${plotR + 4}" y="${y(v) + 4}" font-size="11" fill="#8A8F99">${fmtGlucoseNum(v, o.mmol)}</text>`;
+  for (const [v, cls] of [[o.low, 'c-low-line'], [o.high, 'c-high-line']]) {
+    s += `<line class="${cls}" x1="${m.l}" y1="${y(v)}" x2="${plotR}" y2="${y(v)}" stroke-width="1" stroke-dasharray="4 4" opacity="0.7"/>`;
+    s += `<text class="c-lbl" x="${plotR + 4}" y="${y(v) + 4}" font-size="${fs}">${fmtGlucoseNum(v, o.mmol)}</text>`;
   }
 
   // Readings
-  const rad = o.hours <= 3 ? 3.2 : o.hours <= 6 ? 2.6 : o.hours <= 12 ? 2 : 1.5;
+  const rad = (o.hours <= 3 ? 3.2 : o.hours <= 6 ? 2.6 : o.hours <= 12 ? 2 : 1.5) * Math.min(k, 1.6);
   for (const r of vis) {
-    const c = r.v < o.low ? COLORS.low : r.v > o.high ? COLORS.high : COLORS.ok;
-    s += `<circle cx="${x(r.t).toFixed(1)}" cy="${y(r.v).toFixed(1)}" r="${rad}" fill="${c}"/>`;
+    const c = r.v < o.low ? 'c-low' : r.v > o.high ? 'c-high' : 'c-ok';
+    s += `<circle class="${c}" cx="${x(r.t).toFixed(1)}" cy="${y(r.v).toFixed(1)}" r="${rad.toFixed(1)}"/>`;
   }
 
   el.innerHTML = s + '</svg>';
