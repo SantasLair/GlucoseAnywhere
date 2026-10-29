@@ -99,6 +99,39 @@ export async function pruneReadings(now = Date.now()) {
   } catch { /* nothing to prune */ }
 }
 
+/** Plain-text list of everything stored on this device. The password is never shown. */
+export async function describeStorage() {
+  const lines = [];
+  const inLocal = read(localStorage, CREDS_KEY);
+  const c = inLocal ?? read(sessionStorage, CREDS_KEY);
+  if (c) {
+    lines.push('Dexcom sign-in',
+      `  username: ${c.username}`,
+      '  password: saved (hidden here)',
+      `  region: ${c.region}`,
+      `  session ids: ${c.sessionId ? 'saved' : 'none'}`,
+      `  kept in: ${inLocal ? 'localStorage (until you sign out)' : 'sessionStorage (until this tab closes)'}`);
+  } else {
+    lines.push('Dexcom sign-in', '  none');
+  }
+  lines.push('', 'Display settings (localStorage)', `  ${JSON.stringify(loadPrefs())}`);
+
+  const rows = await getReadings(0);
+  lines.push('', 'Glucose readings (IndexedDB)');
+  if (rows.length) {
+    lines.push(`  ${rows.length} readings`,
+      `  from ${new Date(rows[0].t).toLocaleString()}`,
+      `  to ${new Date(rows[rows.length - 1].t).toLocaleString()}`);
+  } else {
+    lines.push('  none');
+  }
+
+  let caches_ = 0;
+  try { caches_ = (await caches.keys()).length; } catch { /* unavailable */ }
+  lines.push('', 'Offline copy of this app (cache)', `  ${caches_ ? 'saved' : 'none'}`);
+  return lines.join('\n');
+}
+
 /** Remove everything this app stored in the browser, including the offline app cache. */
 export async function forgetEverything() {
   clearCreds();

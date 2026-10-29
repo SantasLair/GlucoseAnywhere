@@ -2,7 +2,7 @@ import { DexcomClient, DexcomError } from './dexcom.js';
 import { drawChart } from './chart.js';
 import {
   loadPrefs, savePrefs, loadCreds, saveCreds, clearCreds,
-  putReadings, getReadings, pruneReadings, forgetEverything,
+  putReadings, getReadings, pruneReadings, forgetEverything, describeStorage,
 } from './store.js';
 import {
   MMOL, TREND_ARROWS, STALE_MS, unitsLabel, fmtGlucose, fmtGlucoseNum, parseNum,
@@ -339,6 +339,14 @@ $('signOutBtn').addEventListener('click', () => {
   status = { state: 'none', message: '' };
   stopPolling();
   showAuth();
+});
+
+$('storedBtn').addEventListener('click', async () => {
+  const box = $('storedBox');
+  if (!box.hidden) { box.hidden = true; $('storedBtn').textContent = "Show what's stored"; return; }
+  box.textContent = await describeStorage();
+  box.hidden = false;
+  $('storedBtn').textContent = 'Hide';
 });
 
 $('csvBtn').addEventListener('click', async () => {

@@ -37,6 +37,26 @@ The exe is unsigned, so Windows SmartScreen will warn on first run (More info, R
 - `GlucoseAnywhere-win-x64-v1.0.0.zip`: Windows app + README.txt
 - `GlucoseAnywhere-web-v1.0.0.zip`: the web app, for self-hosting
 
+## Privacy and verification
+
+Nothing is sent anywhere except to Dexcom's servers, to sign in and fetch readings. There is no GlucoseAnywhere server, account or analytics. The web app's Settings, About section explains how to check this in your browser's network tab, and has a "Show what's stored" button listing everything saved on the device (the password is never displayed).
+
+Where to look in the code:
+
+- `web/dexcom.js`: the only file that contacts Dexcom.
+- `web/store.js`: the only file that saves user data.
+- `web/_headers`: the Content-Security-Policy that stops the page connecting anywhere else.
+- `desktop/GlucoseAnywhere.Core/DexcomClient.cs`: the Windows app's only network code.
+
+## Publishing
+
+- `docs/itch-page.md`: the itch.io page text, file list, `butler` command and a pre-publish checklist.
+- `dist/SHA256SUMS.txt`: checksums for the release zips (regenerate when you rebuild them).
+
+## License
+
+[MIT](LICENSE). Not affiliated with or endorsed by Dexcom.
+
 ## Notes
 
 - Dexcom Share is an unofficial API and can change or stop at any time.

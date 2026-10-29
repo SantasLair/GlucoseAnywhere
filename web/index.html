@@ -40,7 +40,7 @@
     <label class="check"><input id="aRemember" type="checkbox" checked><span>Remember me on this device</span></label>
     <p id="authError" class="msg error" role="alert"></p>
     <button id="authBtn" class="btn primary block" type="submit">Sign in</button>
-    <p class="small muted legal">Your sign-in is stored only in this browser and sent only to Dexcom. Not affiliated with Dexcom. Not a medical device. See <a href="#" id="authAbout">details</a>.</p>
+    <p class="small muted legal">Your sign-in is stored only in this browser and sent only to Dexcom. Not affiliated with Dexcom. Not a medical device. See <a href="#" id="authAbout">how to verify this</a> or read the <a href="https://github.com/SantasLair/glucoseanywhere" target="_blank" rel="noopener noreferrer">source code</a>.</p>
   </form>
 </section>
 
@@ -115,6 +115,22 @@
         </p>
         <p class="small about">
           <b>Not synced.</b> Each browser or device keeps its own sign-in and history. Clearing site data deletes it.
+        </p>
+        <h4 class="about-h">Verify it yourself</h4>
+        <ol class="small about steps">
+          <li>Open your browser's developer tools (F12, or Cmd+Option+I on a Mac) and choose the <b>Network</b> tab.</li>
+          <li>Sign in. You should see requests only to <b>share2.dexcom.com</b>, <b>shareous1.dexcom.com</b> or <b>share.dexcom.jp</b>, plus this site's own files. Nothing else.</li>
+          <li>Look at this page's <b>Content-Security-Policy</b> response header. It tells your browser to block every connection except those Dexcom servers.</li>
+          <li>Turn on airplane mode and reopen the app. Your saved readings still appear, because they're stored on this device.</li>
+          <li>Read the code. Only <b>dexcom.js</b> contacts Dexcom, and only <b>store.js</b> saves your data. The small <b>sw.js</b> file keeps an offline copy of this app's own files and nothing else.</li>
+        </ol>
+        <h4 class="about-h">What's stored on this device</h4>
+        <button id="storedBtn" class="btn block">Show what's stored</button>
+        <pre id="storedBox" class="stored" hidden></pre>
+        <p class="small about links">
+          <a href="https://github.com/SantasLair/glucoseanywhere" target="_blank" rel="noopener noreferrer">Source code</a> ·
+          <a href="https://github.com/SantasLair/glucoseanywhere/blob/master/LICENSE" target="_blank" rel="noopener noreferrer">MIT license</a> ·
+          <a href="https://github.com/SantasLair/glucoseanywhere/issues" target="_blank" rel="noopener noreferrer">Report a problem</a>
         </p>
         <p class="small muted">GlucoseAnywhere <span id="ver"></span></p>
       </div>

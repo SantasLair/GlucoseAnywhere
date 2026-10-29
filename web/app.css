@@ -100,6 +100,11 @@ input:focus, select:focus { border-color: var(--accent); }
 .card .muted.small { margin-top: 8px; }
 .about { margin-top: 10px; color: #c4c7ce; }
 .about b { color: var(--text); }
+.about-h { font-size: 14px; margin: 16px 0 0; }
+.steps { margin: 8px 0 0; padding-left: 20px; }
+.steps li { margin-top: 6px; }
+.links { margin-top: 14px; }
+.stored { margin: 10px 0 0; padding: 12px; background: var(--raised); border-radius: 10px; font: 12px/1.5 ui-monospace, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; color: #c4c7ce; }
 
 /* Tab bar */
 .tabbar {
