@@ -70,14 +70,8 @@ for (const link of document.querySelectorAll('[data-verify]')) link.addEventList
   e.preventDefault();
   $('auth').hidden = true;
   $('app').hidden = false;
-  showTab('settings');
+  openSettings();
   $('about').scrollIntoView();
-  $('tabbar').hidden = true;      // not signed in: nothing else to navigate to
-  const back = document.createElement('button');
-  back.className = 'btn block';
-  back.textContent = 'Back to sign in';
-  back.addEventListener('click', () => { back.remove(); $('tabbar').hidden = false; showAuth(); });
-  $('about').append(back);
 });
 
 $('authForm').addEventListener('submit', async e => {
@@ -154,19 +148,31 @@ $('fsBtn').addEventListener('click', () => { if (fsElement()) fsExit(); else fsE
 function showTab(name) {
   tab = name;
   for (const v of document.querySelectorAll('.view')) v.hidden = v.id !== `view-${name}`;
-  for (const b of $('tabbar').children) b.classList.toggle('active', b.dataset.tab === name);
   window.scrollTo(0, 0);
   if (name === 'home') renderHome();
   if (name === 'settings') renderSettings();
   syncWakeLock();
 }
-$('tabbar').addEventListener('click', e => {
-  const b = e.target.closest('button[data-tab]');
-  if (b) showTab(b.dataset.tab);
-});
+// Settings is a page you open and close, not a tab. Opening adds a history entry, so the device's
+// Back button (and the browser's) closes it instead of leaving the app.
+function openSettings() {
+  if (tab === 'settings') return;
+  history.pushState({ ga: 'settings' }, '');
+  showTab('settings');
+}
+function leaveSettings() {
+  if (!creds) showAuth(); else showTab('home');
+}
+function closeSettings() {
+  if (history.state?.ga === 'settings') history.back();   // popstate then leaves the page
+  else leaveSettings();
+}
+window.addEventListener('popstate', () => { if (tab === 'settings') leaveSettings(); });
+$('settingsBtn').addEventListener('click', openSettings);
+$('settingsClose').addEventListener('click', closeSettings);
 document.addEventListener('click', e => {
   const g = e.target.closest('[data-goto]');
-  if (g) showTab(g.dataset.goto);
+  if (g && g.dataset.goto === 'settings') openSettings();
 });
 
 // ---------------------------------------------------------------- fetching
@@ -225,7 +231,7 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('online', () => { if (!$('app').hidden) fetchNow(); });
 
-$('refreshBtn').addEventListener('click', () => { if (status.state === 'auth') showTab('settings'); else fetchNow(); });
+$('refreshBtn').addEventListener('click', () => { if (status.state === 'auth') openSettings(); else fetchNow(); });
 
 function renderAll() {
   if ($('app').hidden) return;
@@ -494,8 +500,11 @@ document.addEventListener('keydown', e => {
   if (e.target.closest?.('input, select, textarea')) return;
   const key = e.key.toLowerCase();
   const bigOpen = !$('big').hidden;
+  if (tab === 'settings') { if (key === 'escape') closeSettings(); return; }
   if (key === 'escape') {
     if (bigOpen && !fsElement()) exitBig();      // the first Esc leaves fullscreen (the browser handles it)
+  } else if (key === 's' && !bigOpen) {
+    openSettings();
   } else if (key === 'c' && !bigOpen) {
     setLayout(prefs.layout === 'chart' ? 'standard' : 'chart');
   } else if (key === 'b') {
@@ -504,7 +513,7 @@ document.addEventListener('keydown', e => {
     if (!bigOpen && prefs.layout !== 'chart') enterBig(true);
     if (fsElement()) fsExit(); else fsEnter();
   } else if (key === 'r' && !bigOpen) {
-    if (status.state === 'auth') showTab('settings'); else fetchNow();
+    if (status.state === 'auth') openSettings(); else fetchNow();
   }
 });
 

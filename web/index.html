@@ -107,6 +107,9 @@
           <button id="refreshBtn" class="icon-btn refresh" aria-label="Refresh" title="Refresh (R)">
             <svg viewBox="0 0 24 24" width="22" height="22"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
+          <button id="settingsBtn" class="icon-btn" aria-label="Settings" title="Settings (S)">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          </button>
         </div>
         <button id="bigBtn" class="big-reading" aria-label="Open big view">
           <span id="gVal" class="gval">--</span><span id="gArrow" class="garrow"></span>
@@ -123,7 +126,12 @@
 
     <!-- SETTINGS -->
     <section id="view-settings" class="view" hidden>
-      <h2 class="page-title">Settings</h2>
+      <header class="settings-head">
+        <h2 class="page-title">Settings</h2>
+        <button id="settingsClose" class="icon-btn" aria-label="Close settings" title="Close (Esc)">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </header>
 
       <div class="card">
         <h3>Display</h3>
@@ -142,7 +150,7 @@
 
       <div class="card">
         <h3>Wall display</h3>
-        <p class="muted small">Use a spare tablet or screen as an always-on readout. Tap the expand button on the home screen for big-number mode. It fills the window; tap the screen to show its controls, including Fullscreen.</p>
+        <p class="muted small">Use a spare tablet or screen as an always-on readout. Use the expand button on the home screen for big-number mode. It fills the window; tap the screen to show its controls, including Fullscreen.</p>
         <p class="muted small">Keyboard: <b>C</b> chart view, <b>B</b> big number, <b>F</b> fullscreen, <b>R</b> refresh, <b>Esc</b> close. Open <b>glucoseanywhere.com/#chart</b> to start in chart view.</p>
         <label class="field">Home screen layout
           <select id="sLayout"><option value="standard">Reading and chart</option><option value="chart">Chart view (small reading, big graph)</option></select>
@@ -219,11 +227,7 @@
     </section>
   </main>
 
-  <nav class="tabbar" id="tabbar">
-    <button data-tab="home" class="active"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Home</span></button>
-    <button data-tab="settings"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>Settings</span></button>
-  </nav>
-
+  
   <!-- Big mode overlay -->
   <div id="big" class="big" hidden>
     <div class="big-main"><span id="bigVal"></span><span id="bigArrow"></span></div>

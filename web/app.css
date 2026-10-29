@@ -4,12 +4,12 @@
   --ok: #4CC38A; --high: #F2B33D; --low: #EF5350; --stale: #777B84;
   --blue: #4FA3F7; --accent: #4FA3F7;
   --soft: #c4c7ce; --on-accent: #0d1620; --grid: #2F333B; --page-bg: #101216;
-  --big-bg: #000; --tabbar-bg: rgba(34,37,44,.96); --overlay-btn: rgba(255,255,255,.16);
+  --big-bg: #000; --overlay-btn: rgba(255,255,255,.16);
   --toast-err: #5a2626;
   --banner-bg: #3a2f17; --banner-bd: #6b5420; --banner-fg: #F2B33D;
   --err-bg: #3a1d1d; --err-bd: #6b2a2a; --err-fg: #f3a3a1;
   color-scheme: dark;
-  --tabbar-h: 58px;
+  --tabbar-h: 0px;
   --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px); --sar: env(safe-area-inset-right, 0px);
 }
@@ -21,7 +21,7 @@
   --ok: #17935A; --high: #B86E00; --low: #D6372F; --stale: #8A8F99;
   --blue: #1F6FD6; --accent: #1F6FD6;
   --soft: #3C424D; --on-accent: #FFFFFF; --grid: #E3E5EA; --page-bg: #E9EBEF;
-  --big-bg: #FFFFFF; --tabbar-bg: rgba(255,255,255,.96); --overlay-btn: rgba(0,0,0,.08);
+  --big-bg: #FFFFFF; --overlay-btn: rgba(0,0,0,.08);
   --toast-err: #F9D6D3;
   --banner-bg: #FFF4DB; --banner-bd: #E8C777; --banner-fg: #8A5200;
   --err-bg: #FDE3E1; --err-bd: #F0B3AE; --err-fg: #A32B24;
@@ -34,7 +34,7 @@
     --ok: #17935A; --high: #B86E00; --low: #D6372F; --stale: #8A8F99;
     --blue: #1F6FD6; --accent: #1F6FD6;
     --soft: #3C424D; --on-accent: #FFFFFF; --grid: #E3E5EA; --page-bg: #E9EBEF;
-    --big-bg: #FFFFFF; --tabbar-bg: rgba(255,255,255,.96); --overlay-btn: rgba(0,0,0,.08);
+    --big-bg: #FFFFFF; --overlay-btn: rgba(0,0,0,.08);
     --toast-err: #F9D6D3;
     --banner-bg: #FFF4DB; --banner-bd: #E8C777; --banner-fg: #8A5200;
     --err-bg: #FDE3E1; --err-bd: #F0B3AE; --err-fg: #A32B24;
@@ -154,16 +154,6 @@ input:focus, select:focus { border-color: var(--accent); }
 .links { margin-top: 14px; }
 .stored { margin: 10px 0 0; padding: 12px; background: var(--raised); border-radius: 10px; font: 12px/1.5 ui-monospace, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--soft); }
 
-/* Tab bar */
-.tabbar {
-  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 520px; z-index: 20;
-  display: grid; grid-template-columns: repeat(2, 1fr);
-  background: var(--tabbar-bg); border-top: 1px solid var(--line);
-  padding-bottom: var(--sab); backdrop-filter: blur(12px);
-}
-.tabbar button { height: var(--tabbar-h); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--muted); font-size: 11px; font-weight: 600; }
-.tabbar svg { width: 24px; height: 24px; }
-.tabbar button.active { color: var(--accent); }
 
 /* Big mode */
 .big { position: fixed; inset: 0; z-index: 50; background: var(--big-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--sat) var(--sar) var(--sab) var(--sal); text-align: center; cursor: pointer; }
@@ -189,10 +179,9 @@ input:focus, select:focus { border-color: var(--accent); }
   .big-info { margin-top: 2vh; font-size: clamp(14px, 5vh, 28px); }
 }
 
-/* A phone on its side: reading on the left, chart on the right, slimmer tab bar. */
+/* A phone on its side: reading on the left, chart on the right. */
 @media (orientation: landscape) and (max-height: 600px) {
-  :root { --tabbar-h: 48px; }
-  #app, .tabbar { max-width: none; }
+  #app { max-width: none; }
   .view { padding-top: calc(var(--sat) + 8px); }
   #view-home { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 0 12px; align-content: start; }
   #view-home .banner { grid-column: 1 / -1; }
@@ -202,8 +191,6 @@ input:focus, select:focus { border-color: var(--accent); }
   .gval.word { font-size: min(80px, 24vh); }
   .garrow { font-size: min(56px, 17vh); }
   #view-settings, #view-about { max-width: 640px; margin: 0 auto; }
-  .tabbar button { flex-direction: row; justify-content: center; gap: 8px; font-size: 13px; }
-  .tabbar svg { width: 22px; height: 22px; }
 }
 
 .toast { position: fixed; left: 50%; bottom: calc(var(--tabbar-h) + var(--sab) + 24px); transform: translate(-50%, 20px); background: var(--raised); color: var(--text); padding: 10px 18px; border-radius: 22px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 60; box-shadow: 0 6px 20px rgba(0,0,0,.5); font-weight: 600; max-width: 90vw; }
@@ -225,20 +212,10 @@ input:focus, select:focus { border-color: var(--accent); }
 
 /* Desktop and tablet landscape: use the whole window like a desktop app. */
 @media (min-width: 900px) and (min-height: 600px) {
-  :root { --rail-w: 92px; }
   body { background: var(--bg); }
-  #app { max-width: none; box-shadow: none; background: transparent; padding-left: var(--rail-w); }
+  #app { max-width: none; box-shadow: none; background: transparent; }
   .view { padding: 24px 28px; }
 
-  /* Navigation rail instead of the bottom tab bar */
-  .tabbar {
-    top: 0; bottom: 0; left: 0; width: var(--rail-w); max-width: none; transform: none;
-    display: flex; flex-direction: column; justify-content: flex-start; gap: 4px;
-    padding: 20px 0 0; border-top: 0; border-right: 1px solid var(--line);
-    background: var(--surface); backdrop-filter: none;
-  }
-  .tabbar button { height: 76px; width: 100%; flex-direction: column; gap: 4px; font-size: 12px; }
-  .tabbar svg { width: 26px; height: 26px; }
 
   /* Home: reading on the left, chart filling the rest */
   #view-home {
@@ -282,7 +259,7 @@ input:focus, select:focus { border-color: var(--accent); }
 #view-home.chart-focus .glucose-card {
   grid-column: 1; grid-row: 2; margin: 0; min-height: 0; container-type: normal;
   display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 16px;
-  text-align: left; padding: 10px 190px 10px 16px;
+  text-align: left; padding: 10px 240px 10px 16px;
 }
 #view-home.chart-focus .chart-card { grid-column: 1; grid-row: 3; margin: 0; min-height: 0; display: flex; flex-direction: column; }
 #view-home.chart-focus .chart { position: relative; flex: 1; min-height: 120px; }
@@ -311,4 +288,14 @@ input:focus, select:focus { border-color: var(--accent); }
   #view-home.chart-focus .chart-card { padding: 6px 8px 4px; }
   #view-home.chart-focus .seg { margin-bottom: 4px; }
   #view-home.chart-focus .seg button { min-height: 30px; }
+}
+
+/* Settings header with a close button; the icon cluster is slimmer on narrow screens (five buttons) */
+.settings-head { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 14px; }
+.settings-head .page-title { margin: 0; }
+@media (max-width: 600px) {
+  .card-tools .icon-btn { width: 38px; height: 44px; }
+}
+@media (min-width: 900px) and (min-height: 600px) {
+  .settings-head { column-span: all; }
 }
