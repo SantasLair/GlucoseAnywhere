@@ -86,6 +86,25 @@
       </div>
 
       <div class="card">
+        <h3>Wall display</h3>
+        <p class="muted small">Use a spare tablet or screen as an always-on readout. Tap the expand button on the home screen for big-number mode. Tap the screen to show its controls.</p>
+        <label class="check"><input id="sStartBig" type="checkbox"><span>Open in big-number mode when the app starts</span></label>
+        <p id="wakeStatus" class="muted small"></p>
+        <p id="fsStatus" class="muted small"></p>
+        <details class="tips small">
+          <summary>Setup tips for a wall or desk tablet</summary>
+          <ul>
+            <li><b>Install it.</b> Android: Chrome menu, <b>Add to Home screen</b> (or Install app). iPad: Share, <b>Add to Home Screen</b>. It then opens without browser bars.</li>
+            <li><b>Keep it awake.</b> Big mode asks the browser to keep the screen on. If the status above says it can't, set the device's screen timeout to Never (Android: Settings, Display; iPad: Settings, Display &amp; Brightness, Auto-Lock) and leave it plugged in.</li>
+            <li><b>Lock it to the app.</b> iPad: Guided Access (Settings, Accessibility). Android: Screen pinning. This stops accidental exits.</li>
+            <li><b>Auto-start.</b> Turn on the option above, and the app will open straight to the big number each time. Android also has a "Big display" shortcut when you long-press the app icon.</li>
+            <li><b>Dim it at night</b> with the device's brightness setting. The big display is black, so it's easy on the eyes and on OLED screens.</li>
+            <li>If the number is crossed out, the last reading is over 15 minutes old: check Wi-Fi, or that the sensor is still sending to the phone.</li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="card">
         <h3>Dexcom account</h3>
         <p id="acctLine" class="muted small"></p>
         <button id="signOutBtn" class="btn block">Sign out</button>
@@ -149,6 +168,10 @@
   <div id="big" class="big" hidden>
     <div class="big-main"><span id="bigVal"></span><span id="bigArrow"></span></div>
     <div id="bigInfo" class="big-info"></div>
+    <div id="bigBar" class="big-bar" hidden>
+      <button id="bigFs" class="btn" hidden>Fullscreen</button>
+      <button id="bigClose" class="btn">Close</button>
+    </div>
   </div>
 </div>
 

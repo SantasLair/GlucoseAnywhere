@@ -38,6 +38,10 @@ For later releases, bump the version in `--userversion` and push again. itch.io 
 
 GlucoseAnywhere shows your current reading, trend arrow and a 3, 6, 12 or 24 hour chart. Tap the number (double-click on Windows) for a big, always-on display. It's free, has no ads, and sets up in about 30 seconds.
 
+## Made for a wall or desk display
+
+Put a spare tablet, old phone or monitor to work as an always-on readout. Big-number mode fills the screen, keeps the display awake, and can open automatically every time the app starts. A stray tap won't close it: tapping only shows the controls. Works in portrait and landscape.
+
 ## Two ways to use it
 
 **In your browser (nothing to install):** https://glucoseanywhere.com

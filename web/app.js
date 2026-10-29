@@ -41,6 +41,7 @@ function toast(msg, isError = false) {
 // ---------------------------------------------------------------- auth
 function showAuth(message = '') {
   stopPolling();
+  if (!$('big').hidden) exitBig();
   $('app').hidden = true;
   $('auth').hidden = false;
   setMsg('authError', message);
@@ -107,6 +108,7 @@ async function enterApp() {
   startPolling();
   fetchNow();
   pruneReadings();
+  if (prefs.startBig || location.hash === '#big') enterBig(false);
 }
 
 // ---------------------------------------------------------------- tabs
@@ -250,28 +252,58 @@ window.addEventListener('resize', () => { if (!$('app').hidden && tab === 'home'
 
 // ---------------------------------------------------------------- big mode
 let wakeLock = null;
+let barTimer = null;
 
+// Safari on iPad only has the webkit-prefixed fullscreen API; iPhone has none.
+const fsRoot = document.documentElement;
+const fsEnabled = () => !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+const fsEnter = () => { try { return (fsRoot.requestFullscreen || fsRoot.webkitRequestFullscreen)?.call(fsRoot)?.catch?.(() => {}); } catch { /* not allowed */ } };
+const fsExit = () => { try { return (document.exitFullscreen || document.webkitExitFullscreen)?.call(document)?.catch?.(() => {}); } catch { /* ignore */ } };
+
+/** Ask the browser to keep the screen on. The browser drops the lock when the page is hidden or
+ *  the battery is low, so it's re-requested whenever it's released while big mode is still open. */
 async function requestWakeLock() {
+  if (!navigator.wakeLock || wakeLock || document.visibilityState !== 'visible' || $('big').hidden) return;
   try {
-    if (navigator.wakeLock && !wakeLock) {
-      wakeLock = await navigator.wakeLock.request('screen');
-      wakeLock.addEventListener('release', () => { wakeLock = null; });
-    }
+    const lock = await navigator.wakeLock.request('screen');
+    wakeLock = lock;
+    lock.addEventListener('release', () => {
+      if (wakeLock === lock) wakeLock = null;
+      if (!$('big').hidden) setTimeout(requestWakeLock, 1000);
+    });
   } catch { /* unsupported or denied */ }
 }
 
-function enterBig() {
+function showBar(ms = 5000) {
+  $('bigBar').hidden = false;
+  clearTimeout(barTimer);
+  barTimer = setTimeout(() => { $('bigBar').hidden = true; }, ms);
+}
+
+function updateFsButton() {
+  $('bigFs').hidden = !fsEnabled();
+  $('bigFs').textContent = fsElement() ? 'Exit fullscreen' : 'Fullscreen';
+}
+
+/** `gesture` is true when the user just tapped, which browsers require before allowing fullscreen. */
+function enterBig(gesture) {
   $('big').hidden = false;
   renderBig();
-  try { document.documentElement.requestFullscreen?.()?.catch(() => {}); } catch { /* iOS */ }
+  updateFsButton();
+  if (gesture) fsEnter();
+  else showBar(10000);          // auto-started: show the controls so fullscreen is one tap away
   requestWakeLock();
 }
 
 function exitBig() {
   $('big').hidden = true;
-  try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch { /* ignore */ }
+  $('bigBar').hidden = true;
+  clearTimeout(barTimer);
+  if (fsElement()) fsExit();
   wakeLock?.release().catch(() => {});
   wakeLock = null;
+  if (location.hash === '#big') history.replaceState(null, '', location.pathname + location.search);
 }
 
 function renderBig() {
@@ -287,10 +319,18 @@ function renderBig() {
   $('bigInfo').innerHTML = parts.filter(Boolean).join(' · ');
 }
 
-$('bigBtn').addEventListener('click', enterBig);
-$('bigIconBtn').addEventListener('click', enterBig);
-$('big').addEventListener('click', exitBig);
-document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && !$('big').hidden) exitBig(); });
+$('bigBtn').addEventListener('click', () => enterBig(true));
+$('bigIconBtn').addEventListener('click', () => enterBig(true));
+
+// A tap shows or hides the controls. It never closes the display, so a stray tap on a wall tablet is harmless.
+$('big').addEventListener('click', e => {
+  if (e.target.closest('.big-bar')) return;
+  if ($('bigBar').hidden) showBar(); else { $('bigBar').hidden = true; clearTimeout(barTimer); }
+});
+$('bigClose').addEventListener('click', exitBig);
+$('bigFs').addEventListener('click', () => { if (fsElement()) fsExit(); else fsEnter(); showBar(); });
+// Leaving fullscreen (Back, Esc) keeps big mode open; only Close ends it.
+for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, updateFsButton);
 
 // ---------------------------------------------------------------- settings
 function renderSettings() {
@@ -302,8 +342,17 @@ function renderSettings() {
     ? `Signed in as ${creds.username}${creds.remember ? '' : ' (this tab only)'}.`
     : 'Not signed in.';
   $('ver').textContent = `v${VERSION}`;
+  $('sStartBig').checked = !!prefs.startBig;
+  $('wakeStatus').textContent = navigator.wakeLock
+    ? 'Stay awake: this browser can keep the screen on while big mode is open.'
+    : "Stay awake: this browser can't keep the screen on. Set the device's screen timeout to Never.";
+  $('fsStatus').textContent = fsEnabled()
+    ? 'Fullscreen: supported. Use the Fullscreen button in big mode.'
+    : 'Fullscreen: not supported here. Add the app to your home screen to hide the browser bars.';
   renderDataLine();
 }
+
+$('sStartBig').addEventListener('change', e => { prefs.startBig = e.target.checked; savePrefs(prefs); });
 
 function renderDataLine() {
   if (!readings.length) { $('dataLine').textContent = 'No readings stored on this device yet.'; return; }

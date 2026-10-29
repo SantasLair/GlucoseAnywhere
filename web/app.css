@@ -127,6 +127,14 @@ input:focus, select:focus { border-color: var(--accent); }
 .big-info { margin-top: 3vh; font-size: clamp(16px, min(4.2vw, 5vh), 30px); color: var(--muted); padding: 0 12px; }
 .big-info b { color: var(--text); font-weight: 600; }
 
+.big-bar { position: absolute; left: 0; right: 0; bottom: calc(var(--sab) + 18px); display: flex; justify-content: center; gap: 12px; cursor: default; }
+.big-bar .btn { min-width: 130px; background: rgba(255,255,255,.16); color: var(--text); }
+.tips { margin-top: 10px; color: #c4c7ce; }
+.tips summary { cursor: pointer; color: var(--accent); min-height: 32px; }
+.tips ul { margin: 8px 0 0; padding-left: 18px; }
+.tips li { margin-top: 8px; }
+.tips b { color: var(--text); }
+
 /* Landscape: the big number can use far more of the screen. */
 @media (orientation: landscape) {
   .big-main { font-size: min(calc(90vw / (var(--n) * 0.58 + 0.7)), 66vh); }
