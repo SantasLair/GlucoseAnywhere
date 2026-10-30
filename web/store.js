@@ -9,7 +9,7 @@
 const PREFS_KEY = 'ga.prefs';
 const CREDS_KEY = 'ga.creds';
 const FEEDBACK_KEY = 'ga.feedback';
-const FEEDBACK_AFTER_DAYS = 3;
+const FEEDBACK_AFTER_DAYS = 5;
 const DB_NAME = 'glucoseanywhere';
 const STORE = 'readings';
 const KEEP_MS = 90 * 24 * 3600e3;

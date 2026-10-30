@@ -268,12 +268,18 @@ function showBanner(kind, msg, action) {
 function renderBanner() {
   if (status.state === 'auth') showBanner('warn', 'Dexcom rejected your sign-in. Sign in again to keep updating.', 'Settings');
   else if (status.state === 'error') showBanner('err', status.message || "Can't reach Dexcom right now. Showing saved readings.");
-  else if (feedbackDue()) showFeedbackPrompt();
+  else if (feedbackDue() && nowMs() - lastTouch < FEEDBACK_ACTIVE_MS) showFeedbackPrompt();
   else showBanner('warn', '');
 }
 
-// Shown only when there's nothing wrong to report, so it never hides a sign-in or connection problem.
+// Shown only when there's nothing wrong to report, so it never hides a sign-in or connection problem, and only
+// while someone has touched the app in the last few minutes, so an unattended wall display never shows it.
+// It's one ask: it goes away by itself after 30 seconds and doesn't come back.
+const FEEDBACK_ACTIVE_MS = 3 * 60e3, FEEDBACK_SHOWN_MS = 30e3;
+let feedbackTimer = null;
+
 function showFeedbackPrompt() {
+  feedbackTimer ??= setTimeout(() => { dismissFeedback(); renderBanner(); }, FEEDBACK_SHOWN_MS);
   const b = $('banner');
   b.hidden = false;
   b.className = 'banner info';
