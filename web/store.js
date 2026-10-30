@@ -2,11 +2,14 @@
 //   prefs    localStorage            units, limits, chart range
 //   creds    localStorage or         Dexcom sign-in + cached session ids; sessionStorage when
 //            sessionStorage          "remember me" is off, so closing the tab forgets it
+//   feedback localStorage            which days the app was opened, and whether the feedback prompt was dismissed
 //   readings IndexedDB               glucose history (falls back to memory if IndexedDB is blocked)
 // Every storage call is wrapped: private windows and blocked site data can make any of them throw.
 
 const PREFS_KEY = 'ga.prefs';
 const CREDS_KEY = 'ga.creds';
+const FEEDBACK_KEY = 'ga.feedback';
+const FEEDBACK_AFTER_DAYS = 3;
 const DB_NAME = 'glucoseanywhere';
 const STORE = 'readings';
 const KEEP_MS = 90 * 24 * 3600e3;
@@ -20,6 +23,20 @@ const drop = (area, key) => { try { area.removeItem(key); } catch { /* storage u
 // ---- prefs
 export const loadPrefs = () => ({ ...DEFAULT_PREFS, ...(read(localStorage, PREFS_KEY) ?? {}) });
 export const savePrefs = p => write(localStorage, PREFS_KEY, p);
+
+// ---- feedback prompt: shown once, after the app has been opened on a few different days
+const loadFeedback = () => ({ days: [], done: false, ...(read(localStorage, FEEDBACK_KEY) ?? {}) });
+
+/** Record that the app was opened today. */
+export function noteVisit(now = new Date()) {
+  const f = loadFeedback();
+  const today = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+  if (f.done || f.days.includes(today)) return;
+  write(localStorage, FEEDBACK_KEY, { ...f, days: [...f.days, today].slice(-FEEDBACK_AFTER_DAYS) });
+}
+
+export const feedbackDue = () => { const f = loadFeedback(); return !f.done && f.days.length >= FEEDBACK_AFTER_DAYS; };
+export const dismissFeedback = () => write(localStorage, FEEDBACK_KEY, { days: [], done: true });
 
 // ---- credentials: { username, password, region, remember, accountId?, sessionId? }
 export function loadCreds() {
@@ -115,6 +132,7 @@ export async function describeStorage() {
     lines.push('Dexcom sign-in', '  none');
   }
   lines.push('', 'Display settings (localStorage)', `  ${JSON.stringify(loadPrefs())}`);
+  lines.push('', 'Feedback prompt (localStorage)', `  ${JSON.stringify(loadFeedback())}`);
 
   const rows = await getReadings(0);
   lines.push('', 'Glucose readings (IndexedDB)');
@@ -136,6 +154,7 @@ export async function describeStorage() {
 export async function forgetEverything() {
   clearCreds();
   drop(localStorage, PREFS_KEY);
+  drop(localStorage, FEEDBACK_KEY);
   memory = new Map();
   try { (await openDb()).close(); } catch { /* ignore */ }
   dbPromise = null;

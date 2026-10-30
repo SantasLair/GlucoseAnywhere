@@ -3,6 +3,7 @@ import { drawChart, chartFills } from './chart.js';
 import {
   loadPrefs, savePrefs, loadCreds, saveCreds, clearCreds,
   putReadings, getReadings, pruneReadings, forgetEverything, describeStorage,
+  noteVisit, feedbackDue, dismissFeedback,
 } from './store.js';
 import {
   MMOL, TREND_ARROWS, STALE_MS, unitsLabel, fmtGlucose, fmtGlucoseNum, parseNum,
@@ -115,6 +116,7 @@ function signInMessage(err) {
 async function enterApp() {
   $('auth').hidden = true;
   $('app').hidden = false;
+  noteVisit();
   readings = await getReadings(nowMs() - DAY_MS);
   status = { state: readings.length ? 'ok' : 'none', message: '' };
   showTab('home');
@@ -173,6 +175,7 @@ $('settingsClose').addEventListener('click', closeSettings);
 document.addEventListener('click', e => {
   const g = e.target.closest('[data-goto]');
   if (g && g.dataset.goto === 'settings') openSettings();
+  if (e.target.closest('[data-fb], [data-fb-dismiss]')) { dismissFeedback(); setTimeout(renderBanner); }   // after the click, so the mailto: link isn't removed first
 });
 
 // ---------------------------------------------------------------- fetching
@@ -265,7 +268,18 @@ function showBanner(kind, msg, action) {
 function renderBanner() {
   if (status.state === 'auth') showBanner('warn', 'Dexcom rejected your sign-in. Sign in again to keep updating.', 'Settings');
   else if (status.state === 'error') showBanner('err', status.message || "Can't reach Dexcom right now. Showing saved readings.");
+  else if (feedbackDue()) showFeedbackPrompt();
   else showBanner('warn', '');
+}
+
+// Shown only when there's nothing wrong to report, so it never hides a sign-in or connection problem.
+function showFeedbackPrompt() {
+  const b = $('banner');
+  b.hidden = false;
+  b.className = 'banner info';
+  b.innerHTML = '<span>Finding GlucoseAnywhere useful? Tell me what to improve.</span>' +
+    '<span class="banner-actions"><a class="btn-link" data-fb href="mailto:feedback@glucoseanywhere.com?subject=GlucoseAnywhere%20feedback">Send feedback</a>' +
+    '<button data-fb-dismiss>Not now</button></span>';
 }
 
 function renderHome() {
