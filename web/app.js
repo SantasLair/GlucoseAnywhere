@@ -174,7 +174,7 @@ $('settingsClose').addEventListener('click', closeSettings);
 document.addEventListener('click', e => {
   const g = e.target.closest('[data-goto]');
   if (g && g.dataset.goto === 'settings') openSettings();
-  if (e.target.closest('[data-fb], [data-fb-dismiss]')) { dismissFeedback(); setTimeout(renderBanner); }   // after the click, so the mailto: link isn't removed first
+  if (e.target.closest('[data-fb], [data-fb-dismiss]')) setTimeout(hideFeedbackPrompt);   // after the click, so the mailto: link isn't removed first
 });
 
 // ---------------------------------------------------------------- fetching
@@ -268,18 +268,29 @@ function showBanner(kind, msg, action) {
 function renderBanner() {
   if (status.state === 'auth') showBanner('warn', 'Dexcom rejected your sign-in. Sign in again to keep updating.', 'Settings');
   else if (status.state === 'error') showBanner('err', status.message || "Can't reach Dexcom right now. Showing saved readings.");
-  else if (feedbackDue() && nowMs() - lastTouch < FEEDBACK_ACTIVE_MS) showFeedbackPrompt();
+  else if (feedbackOnScreen || (feedbackDue() && nowMs() - lastTouch < FEEDBACK_ACTIVE_MS)) showFeedbackPrompt();
   else showBanner('warn', '');
 }
 
 // Shown only when there's nothing wrong to report, so it never hides a sign-in or connection problem, and only
 // while someone has touched the app in the last few minutes, so an unattended wall display never shows it.
-// It's one ask: it goes away by itself after 30 seconds and doesn't come back.
+// It's one ask: it's recorded as done the moment it first appears, so a reload, a missed prompt or a closed
+// tab never brings it back. It goes away by itself after 30 seconds, or when either button is tapped.
 const FEEDBACK_ACTIVE_MS = 3 * 60e3, FEEDBACK_SHOWN_MS = 30e3;
-let feedbackTimer = null;
+let feedbackOnScreen = false, feedbackTimer = null;
+
+function hideFeedbackPrompt() {
+  clearTimeout(feedbackTimer);
+  feedbackOnScreen = false;
+  renderBanner();
+}
 
 function showFeedbackPrompt() {
-  feedbackTimer ??= setTimeout(() => { dismissFeedback(); renderBanner(); }, FEEDBACK_SHOWN_MS);
+  if (!feedbackOnScreen) {
+    feedbackOnScreen = true;
+    dismissFeedback();
+    feedbackTimer = setTimeout(hideFeedbackPrompt, FEEDBACK_SHOWN_MS);
+  }
   const b = $('banner');
   b.hidden = false;
   b.className = 'banner info';
