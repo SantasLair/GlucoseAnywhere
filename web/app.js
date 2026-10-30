@@ -571,7 +571,7 @@ $('installBtn').addEventListener('click', async () => {
 // no touches, back into big-number mode if that's where it was. Saved sign-in and readings are untouched.
 const UPDATE_FILES = ['./', 'app.js', 'store.js', 'dexcom.js', 'chart.js', 'format.js', 'theme.js', 'app.css'];
 const UPDATE_CHECK_MS = 3600e3, UPDATE_IDLE_MS = 60e3;
-let versionTag = null, lastTouch = nowMs(), updateTimer = null;
+let versionTag = null, lastTouch = 0, updateTimer = null;   // 0: nobody has touched it yet
 
 async function currentVersionTag() {
   try {
