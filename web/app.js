@@ -116,7 +116,6 @@ function signInMessage(err) {
 async function enterApp() {
   $('auth').hidden = true;
   $('app').hidden = false;
-  noteVisit();
   readings = await getReadings(nowMs() - DAY_MS);
   status = { state: readings.length ? 'ok' : 'none', message: '' };
   showTab('home');
@@ -180,6 +179,7 @@ document.addEventListener('click', e => {
 
 // ---------------------------------------------------------------- fetching
 async function fetchNow() {
+  noteVisit();   // an always-on screen never restarts, so count each day here rather than only at start-up
   if (fetching || !creds || status.state === 'auth') return;
   fetching = true;
   $('refreshBtn').classList.add('spin');
@@ -547,12 +547,57 @@ $('installBtn').addEventListener('click', async () => {
   $('installCard').hidden = true;
 });
 
+// ---------------------------------------------------------------- updates
+// A screen that stays on all day never reloads, so it would run old code forever. Every hour (and when the
+// app comes back to the foreground) compare the ETags of the app's files with the ones seen at start-up.
+// When they differ, reload: straight away if the app is in the background, otherwise after a minute with
+// no touches, back into big-number mode if that's where it was. Saved sign-in and readings are untouched.
+const UPDATE_FILES = ['./', 'app.js', 'store.js', 'dexcom.js', 'chart.js', 'format.js', 'theme.js', 'app.css'];
+const UPDATE_CHECK_MS = 3600e3, UPDATE_IDLE_MS = 60e3;
+let versionTag = null, lastTouch = nowMs(), updateTimer = null;
+
+async function currentVersionTag() {
+  try {
+    const tags = await Promise.all(UPDATE_FILES.map(async f => {
+      const r = await fetch(f, { method: 'HEAD', cache: 'no-store' });
+      const tag = r.ok && r.headers.get('etag');
+      if (!tag) throw new Error('no etag');
+      return tag;
+    }));
+    return tags.join();
+  } catch { return null; }   // offline, or a host that sends no ETags: try again next time
+}
+
+function reloadForUpdate() {
+  if (!$('big').hidden) location.hash = '#big';
+  location.reload();
+}
+
+function applyUpdateWhenIdle() {
+  if (updateTimer) return;
+  updateTimer = setInterval(() => {
+    if (document.visibilityState === 'hidden' || nowMs() - lastTouch > UPDATE_IDLE_MS) reloadForUpdate();
+  }, 5000);
+}
+
+async function checkForUpdate() {
+  const tag = await currentVersionTag();
+  if (!tag) return;
+  if (versionTag === null) versionTag = tag;
+  else if (tag !== versionTag) applyUpdateWhenIdle();
+}
+
+for (const ev of ['pointerdown', 'keydown']) document.addEventListener(ev, () => { lastTouch = nowMs(); }, true);
+setInterval(checkForUpdate, UPDATE_CHECK_MS);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
+
 // ---------------------------------------------------------------- boot
 function boot() {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   for (const el of document.querySelectorAll('input[inputmode=decimal]')) {
     el.addEventListener('focus', () => setTimeout(() => el.select(), 0));
   }
+  checkForUpdate();
   applyLayout();
   creds = loadCreds();
   if (creds) enterApp(); else showAuth();
