@@ -1,6 +1,6 @@
 # GlucoseAnywhere
 
-> A free, open-source, always-on glucose display for Dexcom Share. It runs in any modern browser on a phone, tablet or computer, so a spare tablet can become a big wall or desk display. Your Dexcom sign-in and readings stay on your own device; there is no GlucoseAnywhere server, account, ads or tracking.
+> A free, open-source, always-on glucose display for Dexcom Share. It runs in any modern browser on a phone, tablet or computer, so a spare tablet can become a big wall or desk display. Your Dexcom sign-in and readings stay on your own device; it has no accounts and adds no ads, analytics or tracking. Like any website, its host (Cloudflare) sees page requests and gives the owner simple traffic counts.
 
 GlucoseAnywhere shows the current glucose reading from a Dexcom sensor with a trend arrow and a chart. It needs the Dexcom account of the person wearing the sensor, with Share turned on and at least one follower in the Dexcom app. It is not a medical device, has no alerts, and is not affiliated with or endorsed by Dexcom. It uses Dexcom's unofficial Share service, which can change or stop working at any time.
 

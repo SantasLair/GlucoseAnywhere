@@ -55,8 +55,8 @@ The Dexcom account of the **person wearing the sensor** (a follower's login won'
 
 ## Your privacy
 
-- Your sign-in and readings stay **on your own device**. There is no GlucoseAnywhere server, account, ad or analytics.
-- The only servers the app talks to are Dexcom's, to sign in and fetch your readings.
+- Your sign-in and readings stay **on your own device** and are sent only to Dexcom, to sign in and fetch your readings.
+- GlucoseAnywhere has no accounts and adds no ads, analytics or tracking to the app. Like any website, the host (Cloudflare) can see that a page was requested, including your IP address and browser, and gives us simple traffic counts.
 - On the web, your password is saved in your browser so the app can sign in again. On Windows, it's encrypted with your Windows account. Use a Dexcom password you don't use anywhere else.
 - Don't take our word for it: the web app has a **"Verify it yourself"** section in Settings, and the code is open source (MIT): https://github.com/SantasLair/glucoseanywhere
 

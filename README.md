@@ -39,7 +39,7 @@ The exe is unsigned, so Windows SmartScreen will warn on first run (More info, R
 
 ## Privacy and verification
 
-Nothing is sent anywhere except to Dexcom's servers, to sign in and fetch readings. There is no GlucoseAnywhere server, account or analytics. The web app's Settings, About section explains how to check this in your browser's network tab, and has a "Show what's stored" button listing everything saved on the device (the password is never displayed).
+Your sign-in and readings are sent only to Dexcom's servers, to sign in and fetch readings. The app has no accounts and adds no analytics or tracking. Like any website, the host (Cloudflare) sees that pages and files were requested, including IP address and browser, and shows the owner aggregate traffic counts. The web app's Settings, About section explains how to check this in your browser's network tab, and has a "Show what's stored" button listing everything saved on the device (the password is never displayed).
 
 Where to look in the code:
 
