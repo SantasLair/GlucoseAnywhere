@@ -2,6 +2,8 @@
 
 See your Dexcom glucose reading in any browser or on Windows. Not affiliated with Dexcom. Not a medical device.
 
+**Use it now: [glucoseanywhere.com](https://glucoseanywhere.com)**. It's free and runs in your browser, with nothing to install.
+
 | | Web app (PWA) | Windows app |
 |---|---|---|
 | Folder | `web/` | `desktop/` |
