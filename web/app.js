@@ -13,10 +13,11 @@ import {
   fmtDelta, glucoseClass, fmtAge, fmtClock, esc,
 } from './format.js';
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const DAY_MS = 24 * 3600e3;
 const POLL_MS = 60e3;          // check once a minute; Dexcom produces a reading every 5
 const $ = id => document.getElementById(id);
+for (const el of document.querySelectorAll('.ver')) el.textContent = `v${VERSION}`;   // Settings title, About, and the sign-in page
 
 // ---------------------------------------------------------------- state
 let prefs = loadPrefs();
@@ -783,7 +784,6 @@ function renderSettings() {
   $('acctLine').textContent = creds
     ? `Signed in as ${creds.username}${creds.remember ? '' : ' (this tab only)'}.`
     : 'Not signed in.';
-  $('ver').textContent = `v${VERSION}`;
   $('sStartBig').checked = !!prefs.startBig;
   $('sLayout').value = prefs.layout;
   $('sStayAwake').checked = !!prefs.stayAwake;
