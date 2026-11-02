@@ -13,7 +13,7 @@ import {
   fmtDelta, glucoseClass, fmtAge, fmtClock, esc,
 } from './format.js';
 
-const VERSION = '1.4.0';
+const VERSION = '1.4.1';
 const DAY_MS = 24 * 3600e3;
 const POLL_MS = 60e3;          // check once a minute; Dexcom produces a reading every 5
 const $ = id => document.getElementById(id);
