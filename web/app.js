@@ -1,6 +1,6 @@
 import { DexcomClient, DexcomError } from './dexcom.js';
 import { drawChart, drawIobChart, chartFills } from './chart.js';
-import { configured, connect, finishSignIn, disconnect, connectedTo, syncNow, noteDeleted, needsReconnect, PROVIDERS } from './sync.js';
+import { configured, connect, finishSignIn, disconnect, connectedTo, syncNow, noteDeleted, needsReconnect, renewSilently, PROVIDERS } from './sync.js';
 import { curveParams, iobAt, iobFraction, cobAt, iobSeries, activityAt, activitySeries, wizardReady, wizard } from './insulin.js';
 import {
   loadPrefs, savePrefs, loadCreds, saveCreds, clearCreds,
@@ -14,7 +14,7 @@ import {
   fmtDelta, glucoseClass, fmtAge, fmtClock, esc,
 } from './format.js';
 
-const VERSION = '1.6.0';
+const VERSION = '1.6.1';
 const DAY_MS = 24 * 3600e3;
 const SYNC_POLL_MS = 20e3;     // how often a visible window checks the drive for doses logged elsewhere
 const POLL_MS = 60e3;         // check once a minute; Dexcom produces a reading every 5
@@ -934,6 +934,7 @@ function applyMergedSettings(merged) {
 /** quiet: the background check, which says nothing and uploads only if something differs. */
 async function runSync(quiet = false) {
   if (!prefs.insulinOn || !connectedTo() || syncState.busy) return;
+  if (document.visibilityState === 'visible' && renewSilently()) return;
   syncState = { busy: true, error: '' };
   if (!quiet) renderSyncLine();
   try {
@@ -946,6 +947,7 @@ async function runSync(quiet = false) {
     if (r.added) toast(`Synced: ${r.added} new ${r.added === 1 ? 'entry' : 'entries'}.`);
   } catch (err) {
     if (!quiet || needsReconnect(err)) syncState.error = needsReconnect(err) ? 'Sign in again to keep syncing.' : "Couldn't reach your drive. Your log is safe on this device.";
+    syncState.needsSignIn = needsReconnect(err);
   }
   syncState.busy = false;
   renderAll();
@@ -962,8 +964,12 @@ function syncSoon() {
 function renderSyncLine() {
   const p = connectedTo();
   const avail = configured();
-  $('syncMs').hidden = !!p || !avail.includes('microsoft');
-  $('syncGoogle').hidden = !!p || !avail.includes('google');
+  // When the sign-in has run out, the provider's button comes back as "Reconnect", with no need to disconnect first.
+  const stale = !!p && (syncState.needsSignIn || loadSyncFlag('silentFailed'));
+  $('syncMs').hidden = (!!p && !(stale && p === 'microsoft')) || !avail.includes('microsoft');
+  $('syncGoogle').hidden = (!!p && !(stale && p === 'google')) || !avail.includes('google');
+  $('syncMs').textContent = stale ? 'Reconnect OneDrive' : 'Connect OneDrive';
+  $('syncGoogle').textContent = stale ? 'Reconnect Google Drive' : 'Connect Google Drive';
   $('syncNow').hidden = !p;
   $('syncOff').hidden = !p;
   $('syncNow').disabled = syncState.busy;
@@ -972,6 +978,7 @@ function renderSyncLine() {
     ? `Linked to ${PROVIDERS[p].name}.${last ? ` Last synced ${fmtClock(last)}.` : ''} ${syncState.busy ? 'Syncing…' : syncState.error}`
     : avail.length ? 'Not linked.' : 'Cloud sync is not set up in this copy of the app.';
 }
+const loadSyncFlag = k => { try { return !!JSON.parse(localStorage.getItem('ga.sync'))?.[k]; } catch { return false; } };
 const loadSyncLast = () => { try { return JSON.parse(localStorage.getItem('ga.sync'))?.last ?? 0; } catch { return 0; } };
 $('syncMs').addEventListener('click', () => connect('microsoft'));
 $('syncGoogle').addEventListener('click', () => connect('google'));
@@ -1243,8 +1250,12 @@ function boot() {
   creds = loadCreds();
   // Coming back from Google or Microsoft's sign-in page: store the link first, then open as usual.
   finishSignIn().then(r => {
+    // Google's sign-in lasts an hour: renew it as the app opens (it comes straight back) rather than sync with a dead token.
+    if (!r && prefs.insulinOn && renewSilently()) return;
     if (creds) enterApp(); else showAuth();
     if (r?.error) toast(r.error, true);
+    else if (r?.renewFailed) toast('Google needs you to sign in again to keep syncing. See Settings.', true);
+    else if (r?.renewed) { /* quiet */ }
     else if (r?.provider) { toast(`Linked to ${PROVIDERS[r.provider].name}.`); if (creds) { openInsulin(); } }
   });
 }

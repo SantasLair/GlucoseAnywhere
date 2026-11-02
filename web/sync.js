@@ -28,11 +28,11 @@ const sha256 = async s => b64url(new Uint8Array(await crypto.subtle.digest('SHA-
 
 // ---- sign-in
 /** Leave the app for the provider's consent page. It returns to this origin; call finishSignIn() at start-up. */
-export async function connect(provider) {
+export async function connect(provider, { silent = false } = {}) {
   const id = CLIENT_IDS[provider];
   if (!id) throw new Error('not configured');
   const state = randomString();
-  const pending = { provider, state };
+  const pending = { provider, state, silent };
   let url;
   if (provider === 'microsoft') {
     pending.verifier = randomString();
@@ -44,6 +44,7 @@ export async function connect(provider) {
     url = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
       client_id: id, response_type: 'token', redirect_uri: redirectUri(), state,
       scope: 'https://www.googleapis.com/auth/drive.appdata', include_granted_scopes: 'true',
+      ...(silent ? { prompt: 'none' } : {}),
     });
   }
   saveSync({ ...(loadSync() ?? {}), pending });
@@ -60,17 +61,22 @@ export async function finishSignIn() {
   const { pending } = s;
   history.replaceState(null, '', location.pathname);
   saveSync({ ...s, pending: undefined });
+  if (err && pending?.silent) {   // the quiet renewal needed a tap: keep the link, stop trying until the user reconnects
+    saveSync({ ...s, pending: undefined, silentFailed: true });
+    return { renewFailed: true };
+  }
   if (err) return { error: 'The sign-in was cancelled or refused.' };
   if (!pending || pending.state !== (q.get('state') || h.get('state'))) return { error: 'The sign-in response did not match, so it was ignored.' };
   try {
     if (isGoogle) {
-      saveSync({ provider: 'google', token: h.get('access_token'), expires: Date.now() + Number(h.get('expires_in')) * 1000 });
+      // Keep the pending deletes and the last-sync time across a new token.
+      saveSync({ ...s, pending: undefined, silentFailed: undefined, provider: 'google', token: h.get('access_token'), expires: Date.now() + Number(h.get('expires_in')) * 1000 });
     } else {
       saveSync({ provider: 'microsoft', ...await tokenRequest({
         grant_type: 'authorization_code', code: q.get('code'), code_verifier: pending.verifier, redirect_uri: redirectUri(),
       }) });
     }
-    return { provider: pending.provider };
+    return { provider: pending.provider, renewed: !!pending.silent };
   } catch { return { error: "Couldn't finish signing in." }; }
 }
 
@@ -85,6 +91,17 @@ async function tokenRequest(params) {
 
 export const disconnect = () => saveSync(null);
 export const connectedTo = () => loadSync()?.provider ?? null;
+
+/** Google's token lasts an hour and has no refresh. Leave for Google and come straight back with a new one, if it can do
+ *  that without asking (the user is signed in and has already agreed). Returns false when it shouldn't or can't try. */
+export function renewSilently() {
+  const s = loadSync();
+  if (s?.provider !== 'google' || s.silentFailed || s.expires > Date.now() + 2 * 60e3) return false;   // renew just before it runs out
+  if (Date.now() - (s.silentAt ?? 0) < 5 * 60e3) return false;   // never loop
+  saveSync({ ...s, silentAt: Date.now() });
+  connect('google', { silent: true });
+  return true;
+}
 
 class NeedsSignIn extends Error {}
 async function accessToken() {
