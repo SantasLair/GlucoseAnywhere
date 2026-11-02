@@ -41,7 +41,7 @@ The exe is unsigned, so Windows SmartScreen will warn on first run (More info, R
 
 ## Privacy and verification
 
-Your sign-in and readings are sent only to Dexcom's servers, to sign in and fetch readings. The optional insulin log stays on the device unless the user links their own Google Drive or OneDrive, in which case only that log is sent there, directly from the browser (never through this site), until they disconnect. The app has no accounts and adds no analytics or tracking. Like any website, the host (Cloudflare) sees that pages and files were requested, including IP address and browser, and shows the owner aggregate traffic counts. The web app's Settings, About section explains how to check this in your browser's network tab, and has a "Show what's stored" button listing everything saved on the device (the password is never displayed).
+Your sign-in and readings are sent only to Dexcom's servers, to sign in and fetch readings. The optional insulin log stays on the device unless the user links their own Google Drive or OneDrive, in which case only that log, the dose settings (carb ratio, correction factor, target, insulin timing, dose step, max bolus) and the medication buttons are sent there, directly from the browser (never through this site), until they disconnect. The app has no accounts and adds no analytics or tracking. Like any website, the host (Cloudflare) sees that pages and files were requested, including IP address and browser, and shows the owner aggregate traffic counts. The web app's Settings, About section explains how to check this in your browser's network tab, and has a "Show what's stored" button listing everything saved on the device (the password is never displayed).
 
 Where to look in the code:
 
@@ -63,9 +63,11 @@ Where to look in the code:
 
 - Dexcom Share is an unofficial API and can change or stop at any time.
 - Don't use this in place of the Dexcom app's alarms.
-- The insulin page (web app) logs insulin and carbs on the device, draws insulin on board, and shows a bolus-wizard estimate once you enter your own carb ratio, correction factor and target. It is an estimate only; confirm doses with your care team. The log can be exported and imported as JSON; it is off by default, and optionally syncs to the user's own Google Drive or OneDrive.
+- The insulin page (web app) logs insulin and carbs on the device, draws insulin on board, and shows a bolus-wizard estimate once you enter your own carb ratio, correction factor and target. It is an estimate only; confirm doses with your care team. The log can be exported and imported as JSON; it is off by default, and optionally syncs the log and the dose settings to the user's own Google Drive or OneDrive. The newest change to each setting wins, values from the drive are range-checked like typed ones, and the app shows a notice listing any setting another device changed.
 
 ### Cloud sync of the insulin log (optional)
+
+**Status: in development and testing.** Google Drive sync is live in the app but the Google project is still in Testing mode, so only approved test users can connect. OneDrive sync is built but has no client ID yet, so its button stays hidden. Export and Import work for everyone.
 
 Each user signs in to **their own** account; the log is stored as one JSON file in that account's private app folder. To enable it in your deployment, register an OAuth app and put the public client IDs in `web/sync-config.js` (a provider with no ID is hidden):
 

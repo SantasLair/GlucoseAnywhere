@@ -21,6 +21,8 @@ const KEEP_MS = 90 * 24 * 3600e3;
 export const DEFAULT_PREFS = { useMmol: false, low: 70, high: 180, range: 6, startBig: false, theme: 'auto', layout: 'standard', stayAwake: true,
   iobGraph: false, iobKind: 'iob',               // IOB is a number; the graph is opt-in
   medButtons: [{ label: 'Bedtime meds', items: [] }],   // one-tap buttons on the Insulin page for oral medications
+  settingsAt: {},                               // when each synced setting was last changed here (see settings.js)
+  settingsNotice: [],                           // changes applied from another device, shown until dismissed
   insulinOn: false,                             // the whole insulin log / wizard feature is opt-in
   // Insulin calculator. Dose-affecting values start empty: the wizard stays off until you enter your own.
   icr: null, isf: null, target: null,          // g per unit, mg/dL per unit, mg/dL

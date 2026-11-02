@@ -1,5 +1,6 @@
 // Optional sync of the insulin log to the user's own Google Drive or OneDrive.
-// Only the insulin/carb log goes there (never the Dexcom sign-in or glucose readings), as one JSON file in the
+// Only the insulin/carb log, the dose settings and the medication buttons go there (never the Dexcom sign-in or
+// glucose readings), as one JSON file in the
 // app's private folder, which the app can read and write but the rest of the drive stays out of reach.
 // There is no server of ours in the middle: the browser talks to the provider directly, with no SDKs.
 //   Microsoft: authorization code + PKCE, with a refresh token, so it keeps working.
@@ -7,6 +8,7 @@
 //              and the user taps Reconnect when it runs out.
 // The merge is by entry id, so two devices add each other's entries; deletes travel as tombstones.
 import { CLIENT_IDS } from './sync-config.js';
+import { mergeSettings } from './settings.js';
 import { loadSync, saveSync, getTreatments, putTreatments, deleteTreatment, cleanTreatment } from './store.js';
 
 const FILE = 'glucoseanywhere-insulin-log.json';
@@ -160,7 +162,7 @@ async function upload(provider, token, data) {
  * Two-way sync. Returns the number of entries added on this device.
  * `deleted` is the local tombstone list [{ id, at }], and `forgetDeleted(list)` replaces it.
  */
-export async function syncNow() {
+export async function syncNow(localSettings = {}) {
   const s = loadSync();
   const provider = s?.provider;
   const token = await accessToken();
@@ -186,9 +188,10 @@ export async function syncNow() {
   if (changed.length) await putTreatments(changed);   // new entries, and edits made on another device
 
   const rows = [...merged.values()].sort((a, b) => a.t - b.t);
-  await upload(provider, token, { app: 'GlucoseAnywhere', version: 1, treatments: rows, deleted: [...tomb.values()] });
+  const settings = mergeSettings(localSettings, remote?.settings);   // newer change wins, bad values dropped
+  await upload(provider, token, { app: 'GlucoseAnywhere', version: 1, treatments: rows, deleted: [...tomb.values()], settings });
   saveSync({ ...loadSync(), deleted: [...tomb.values()], last: now });
-  return { added: added.length, total: rows.length, before };
+  return { added: added.length, total: rows.length, before, settings };
 }
 
 /** Remember that this device deleted an entry, so the next sync removes it everywhere. */

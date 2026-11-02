@@ -10,7 +10,7 @@ GlucoseAnywhere shows the current glucose reading from a Dexcom sensor with a tr
 - Optional insulin and carb log that can be edited, with full history kept on the device
 - Optional insulin on board and insulin activity graphs, using the user's own insulin peak time and duration
 - Optional bolus calculator (carbs, correction and insulin on board) as a rough estimate to check against a care team's guidance
-- Optional sync of the insulin log to the user's own Google Drive or OneDrive, or export and import as a file
+- Optional sync of the insulin log and dose settings (Google Drive sync is in development and testing: only approved testers can connect for now) to the user's own Google Drive or OneDrive (newest change wins, with a notice when another device changes a setting), or export and import the log as a file
 - Light and dark themes, a one-screen layout for phones, and a desktop layout that uses the whole window
 - Works offline with saved readings, and can be added to a home screen like an app
 - Nothing to install or host; free under the MIT license

@@ -6,14 +6,15 @@ import {
   loadPrefs, savePrefs, loadCreds, saveCreds, clearCreds,
   putReadings, getReadings, pruneReadings, forgetEverything, describeStorage,
   putTreatments, getTreatments, deleteTreatment, requestPersistence, cleanTreatment,
-  noteVisit, feedbackDue, dismissFeedback,
+  noteVisit, feedbackDue, dismissFeedback, DEFAULT_PREFS,
 } from './store.js';
+import { offerSettings, applyRemote } from './settings.js';
 import {
   MMOL, TREND_ARROWS, STALE_MS, unitsLabel, fmtGlucose, fmtGlucoseNum, parseNum,
   fmtDelta, glucoseClass, fmtAge, fmtClock, esc,
 } from './format.js';
 
-const VERSION = '1.4.2';
+const VERSION = '1.5.0';
 const DAY_MS = 24 * 3600e3;
 const POLL_MS = 60e3;          // check once a minute; Dexcom produces a reading every 5
 const $ = id => document.getElementById(id);
@@ -204,6 +205,7 @@ $('logClose').addEventListener('click', closePage);
 document.addEventListener('click', e => {
   const g = e.target.closest('[data-goto]');
   if (g && g.dataset.goto === 'settings') openSettings();
+  if (e.target.closest('[data-dismiss-notice]')) { prefs.settingsNotice = []; savePrefs(prefs); renderBanner(); }
   if (e.target.closest('[data-fb], [data-fb-dismiss]')) setTimeout(hideFeedbackPrompt);   // after the click, so the mailto: link isn't removed first
 });
 
@@ -298,9 +300,18 @@ function showBanner(kind, msg, action) {
   b.innerHTML = `<span>${esc(msg)}</span>` + (action ? `<button data-goto="settings">${esc(action)}</button>` : '');
 }
 
+function showSettingsNotice() {
+  const b = $('banner');
+  b.hidden = false;
+  b.className = 'banner';
+  b.innerHTML = `<span>Settings updated from another device: ${esc(prefs.settingsNotice.join('; '))}</span>` +
+    '<span class="banner-actions"><button data-goto="settings">Review</button><button data-dismiss-notice>OK</button></span>';
+}
+
 function renderBanner() {
   if (status.state === 'auth') showBanner('warn', 'Dexcom rejected your sign-in. Sign in again to keep updating.', 'Settings');
   else if (status.state === 'error') showBanner('err', status.message || "Can't reach Dexcom right now. Showing saved readings.");
+  else if (prefs.settingsNotice?.length) showSettingsNotice();
   else if (feedbackOnScreen || (feedbackDue() && nowMs() - lastTouch < FEEDBACK_ACTIVE_MS)) showFeedbackPrompt();
   else showBanner('warn', '');
 }
@@ -858,7 +869,9 @@ const numField = (id, key, { min, max, blank = false, toStore = v => v, toShow =
     if (v != null && !(v >= min && v <= max)) return setMsg('iError', 'One of those values is out of range.');
     setMsg('iError');
     prefs[key] = v;
+    touchSetting(key);
     savePrefs(prefs);
+    syncSoon();
   });
   return () => { $(id).value = prefs[key] == null ? '' : toShow(prefs[key]); };
 };
@@ -867,12 +880,43 @@ const showGlucoseish = v => (prefs.useMmol ? (v / MMOL).toFixed(2).replace(/\.?0
 let syncState = { busy: false, error: '' };
 let syncTimer = null;
 
+// ---- dose settings travel with the log (settings.js decides: newer change wins, values are range-checked)
+function touchSetting(key) { prefs.settingsAt = { ...(prefs.settingsAt ?? {}), [key]: nowMs() }; }
+
+const SETTING_LABELS = { icr: 'Carb ratio', isf: 'Correction factor', target: 'Target', dia: 'Insulin duration', peak: 'Insulin peak', carbHours: 'Carb absorption', step: 'Dose step', maxBolus: 'Max bolus', medButtons: 'Medication buttons' };
+function settingText(key, v) {
+  if (v == null) return 'off';
+  if (key === 'isf') return `${showGlucoseish(v)} ${unitsLabel(prefs.useMmol)} per u`;
+  if (key === 'target') return `${fmtGlucoseNum(v, prefs.useMmol)} ${unitsLabel(prefs.useMmol)}`;
+  if (key === 'icr') return `${v} g per u`;
+  if (key === 'dia' || key === 'carbHours') return `${v} h`;
+  if (key === 'peak') return `${v} min`;
+  if (key === 'medButtons') return v.length ? v.map(m => m.label).join(', ') : 'none';
+  return `${v} u`;   // dose step, max bolus
+}
+
+/** Apply the settings the drive sent back. Anything that actually changed here is listed in a notice until dismissed. */
+function applyMergedSettings(merged) {
+  const { prefs: next, changes } = applyRemote(prefs, merged, nowMs());
+  Object.assign(prefs, next);
+  if (!changes.length) return savePrefs(prefs);
+  const lines = changes.map(c => `${SETTING_LABELS[c.key]} ${settingText(c.key, c.to)}${c.from != null && !(Array.isArray(c.from) && !c.from.length) ? ` (was ${settingText(c.key, c.from)})` : ''}`);
+  prefs.settingsNotice = [...(prefs.settingsNotice ?? []), ...lines].slice(-8);
+  savePrefs(prefs);
+  renderInsulinSettings();
+  toast('Settings updated from your other device.');
+}
+
 async function runSync() {
   if (!prefs.insulinOn || !connectedTo() || syncState.busy) return;
   syncState = { busy: true, error: '' };
   renderSyncLine();
   try {
-    const r = await syncNow();
+    const { offer, at } = offerSettings(prefs, DEFAULT_PREFS, nowMs());
+    prefs.settingsAt = at;
+    savePrefs(prefs);
+    const r = await syncNow(offer);
+    applyMergedSettings(r.settings);
     treatments = await getTreatments(nowMs() - DAY_MS);
     if (r.added) toast(`Synced: ${r.added} new ${r.added === 1 ? 'entry' : 'entries'}.`);
   } catch (err) {
@@ -922,7 +966,7 @@ const insulinFields = [
   numField('sPeak', 'peak', { min: 30, max: 120 }),
   numField('sCarbH', 'carbHours', { min: 1, max: 8 }),
 ];
-$('sStep').addEventListener('change', e => { prefs.step = Number(e.target.value); savePrefs(prefs); });
+$('sStep').addEventListener('change', e => { prefs.step = Number(e.target.value); touchSetting('step'); savePrefs(prefs); syncSoon(); });
 const parseItems = text => text.split(',').map(i => i.trim().slice(0, 40)).filter(Boolean).slice(0, 12);
 /** "Bedtime meds: Metformin 500 mg, Atorvastatin 20 mg" per line -> [{ label, items }] */
 const parseMedButtons = text => text.split('\n').map(line => {
@@ -931,7 +975,7 @@ const parseMedButtons = text => text.split('\n').map(line => {
   return label ? { label, items: i < 0 ? [] : parseItems(line.slice(i + 1)) } : null;
 }).filter(Boolean).slice(0, 6);
 const formatMedButtons = list => list.map(m => m.items.length ? `${m.label}: ${m.items.join(', ')}` : m.label).join('\n');
-$('sMeds').addEventListener('input', e => { prefs.medButtons = parseMedButtons(e.target.value); savePrefs(prefs); });
+$('sMeds').addEventListener('input', e => { prefs.medButtons = parseMedButtons(e.target.value); touchSetting('medButtons'); savePrefs(prefs); syncSoon(); });
 function renderInsulinSettings() {
   for (const f of insulinFields) f();
   $('sMeds').value = formatMedButtons(prefs.medButtons ?? []);
@@ -1123,7 +1167,7 @@ $('installBtn').addEventListener('click', async () => {
 // app comes back to the foreground) compare the ETags of the app's files with the ones seen at start-up.
 // When they differ, reload: straight away if the app is in the background, otherwise after a minute with
 // no touches, back into big-number mode if that's where it was. Saved sign-in and readings are untouched.
-const UPDATE_FILES = ['./', 'app.js', 'store.js', 'dexcom.js', 'chart.js', 'insulin.js', 'sync.js', 'sync-config.js', 'format.js', 'theme.js', 'app.css'];
+const UPDATE_FILES = ['./', 'app.js', 'store.js', 'dexcom.js', 'chart.js', 'insulin.js', 'settings.js', 'sync.js', 'sync-config.js', 'format.js', 'theme.js', 'app.css'];
 const UPDATE_CHECK_MS = 3600e3, UPDATE_IDLE_MS = 60e3;
 let versionTag = null, lastTouch = 0, updateTimer = null;   // 0: nobody has touched it yet
 
