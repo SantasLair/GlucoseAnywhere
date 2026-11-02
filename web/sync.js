@@ -162,7 +162,13 @@ async function upload(provider, token, data) {
  * Two-way sync. Returns the number of entries added on this device.
  * `deleted` is the local tombstone list [{ id, at }], and `forgetDeleted(list)` replaces it.
  */
-export async function syncNow(localSettings = {}) {
+const fingerprint = p => JSON.stringify([
+  (p.treatments ?? []).map(r => [r.id, r.u ?? 0, r.v, r.t, r.kind, r.name ?? '']).sort(),
+  (p.deleted ?? []).map(d => d.id).sort(),
+  p.settings ?? null,
+]);
+
+export async function syncNow(localSettings = {}, opts = {}) {
   const s = loadSync();
   const provider = s?.provider;
   const token = await accessToken();
@@ -189,7 +195,11 @@ export async function syncNow(localSettings = {}) {
 
   const rows = [...merged.values()].sort((a, b) => a.t - b.t);
   const settings = mergeSettings(localSettings, remote?.settings);   // newer change wins, bad values dropped
-  await upload(provider, token, { app: 'GlucoseAnywhere', version: 1, treatments: rows, deleted: [...tomb.values()], settings });
+  const payload = { app: 'GlucoseAnywhere', version: 1, treatments: rows, deleted: [...tomb.values()], settings };
+  // A background check skips the upload when the drive already holds exactly this.
+  if (!(opts.idle && remote && fingerprint(payload) === fingerprint({ ...remote, treatments: (remote.treatments ?? []).map(cleanTreatment).filter(Boolean) }))) {
+    await upload(provider, token, payload);
+  }
   saveSync({ ...loadSync(), deleted: [...tomb.values()], last: now });
   return { added: added.length, total: rows.length, before, settings };
 }

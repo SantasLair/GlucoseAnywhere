@@ -14,9 +14,10 @@ import {
   fmtDelta, glucoseClass, fmtAge, fmtClock, esc,
 } from './format.js';
 
-const VERSION = '1.5.1';
+const VERSION = '1.6.0';
 const DAY_MS = 24 * 3600e3;
-const POLL_MS = 60e3;          // check once a minute; Dexcom produces a reading every 5
+const SYNC_POLL_MS = 20e3;     // how often a visible window checks the drive for doses logged elsewhere
+const POLL_MS = 60e3;         // check once a minute; Dexcom produces a reading every 5
 const $ = id => document.getElementById(id);
 for (const el of document.querySelectorAll('.ver')) el.textContent = `v${VERSION}`;   // Settings title, About, and the sign-in page
 
@@ -31,7 +32,7 @@ let status = { state: 'none', message: '' };   // none | ok | auth | error
 let tab = 'home';
 let fetching = false;
 let lastFetch = 0;
-let pollTimer = null, ageTimer = null;
+let pollTimer = null, ageTimer = null, syncPollTimer = null;
 
 if (!['auto', 'light', 'dark'].includes(prefs.theme)) prefs.theme = 'auto';
 if (!['standard', 'chart'].includes(prefs.layout)) prefs.layout = 'standard';
@@ -255,8 +256,10 @@ function startPolling() {
     if (document.visibilityState === 'visible' && nowMs() - lastFetch >= POLL_MS - 1000) fetchNow();
   }, POLL_MS);
   ageTimer = setInterval(renderAll, 15000);
+  // A display left open picks up doses logged on another device within about 20 seconds.
+  syncPollTimer = setInterval(() => { if (document.visibilityState === 'visible') runSync(true); }, SYNC_POLL_MS);
 }
-function stopPolling() { clearInterval(pollTimer); clearInterval(ageTimer); }
+function stopPolling() { clearInterval(pollTimer); clearInterval(ageTimer); clearInterval(syncPollTimer); }
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible' || $('app').hidden) return;
@@ -412,6 +415,7 @@ function renderHome() {
   drawChart($('chart'), {
     readings, hours: prefs.range, now: nowMs(),
     low: prefs.low, high: prefs.high, mmol: prefs.useMmol,
+    insulin: prefs.insulinOn ? doses() : [], carbs: prefs.insulinOn ? meals() : [],
   });
 }
 
@@ -728,17 +732,28 @@ $('wBgReset').addEventListener('click', () => { wBgEdited = false; renderWizard(
 $('wizUnits').addEventListener('input', () => { wUnitsEdited = true; renderWizard(); });
 $('wUnitsReset').addEventListener('click', () => { wUnitsEdited = false; renderWizard(); });
 
-$('wizLog').addEventListener('click', () => {
+// Logs the dose straight away, returns to the main page and says so.
+$('wizLog').addEventListener('click', async () => {
   const carbs = Math.max(0, parseNum($('wCarbs').value) ?? 0);
   const w = wizardNow(carbs, true);
   const units = wUnitsEdited ? Math.max(0, parseNum($('wizUnits').value) ?? 0) : w?.units;
-  if (units == null) return;
-  $('lType').value = 'rapid';
-  $('lIns').value = units ? fmtDose(units) : '';
-  $('lCarbs').value = carbs || '';
-  navTo('log');
-  $('logCard').scrollIntoView({ block: 'center' });
-  $('lIns').focus();
+  if (!(units > 0) && !(carbs > 0)) return toast('Enter units or carbs to log.', true);
+  if (units > 100 || carbs > 500) return toast('Those amounts look wrong. Insulin up to 100 u, carbs up to 500 g.', true);
+  const rows = await putTreatments([
+    ...(units > 0 ? [{ t: nowMs(), kind: 'insulin', v: units }] : []),
+    ...(carbs > 0 ? [{ t: nowMs(), kind: 'carbs', v: carbs }] : []),
+  ]);
+  treatments = [...treatments, ...rows].sort((a, b) => a.t - b.t);
+  if (logRange === 'all') allRows = await getTreatments(0);
+  $('wCarbs').value = '';
+  wBgEdited = false;
+  wUnitsEdited = false;
+  await loadRecentExtras();
+  renderInsulin();
+  syncSoon();
+  closePage();
+  renderHome();
+  toast(`Logged ${[units > 0 && `${fmtDose(units)} u`, carbs > 0 && `${fmtDose(carbs)} g carbs`].filter(Boolean).join(' and ')}.`);
 });
 
 $('logForm').addEventListener('submit', async e => {
@@ -916,30 +931,32 @@ function applyMergedSettings(merged) {
   toast('Settings updated from your other device.');
 }
 
-async function runSync() {
+/** quiet: the background check, which says nothing and uploads only if something differs. */
+async function runSync(quiet = false) {
   if (!prefs.insulinOn || !connectedTo() || syncState.busy) return;
   syncState = { busy: true, error: '' };
-  renderSyncLine();
+  if (!quiet) renderSyncLine();
   try {
     const { offer, at } = offerSettings(prefs, DEFAULT_PREFS, nowMs());
     prefs.settingsAt = at;
     savePrefs(prefs);
-    const r = await syncNow(offer);
+    const r = await syncNow(offer, { idle: quiet });
     applyMergedSettings(r.settings);
     treatments = await getTreatments(nowMs() - DAY_MS);
     if (r.added) toast(`Synced: ${r.added} new ${r.added === 1 ? 'entry' : 'entries'}.`);
   } catch (err) {
-    syncState.error = needsReconnect(err) ? 'Sign in again to keep syncing.' : "Couldn't reach your drive. Your log is safe on this device.";
+    if (!quiet || needsReconnect(err)) syncState.error = needsReconnect(err) ? 'Sign in again to keep syncing.' : "Couldn't reach your drive. Your log is safe on this device.";
   }
   syncState.busy = false;
   renderAll();
   renderSyncLine();
 }
+$('syncNow').addEventListener('click', () => runSync());
 /** Sync shortly after a change, so several quick edits make one upload. */
 function syncSoon() {
   if (!prefs.insulinOn || !connectedTo()) return;
   clearTimeout(syncTimer);
-  syncTimer = setTimeout(runSync, 3000);
+  syncTimer = setTimeout(() => runSync(), 3000);
 }
 
 function renderSyncLine() {
@@ -958,7 +975,6 @@ function renderSyncLine() {
 const loadSyncLast = () => { try { return JSON.parse(localStorage.getItem('ga.sync'))?.last ?? 0; } catch { return 0; } };
 $('syncMs').addEventListener('click', () => connect('microsoft'));
 $('syncGoogle').addEventListener('click', () => connect('google'));
-$('syncNow').addEventListener('click', runSync);
 $('syncOff').addEventListener('click', () => {
   if (!confirm('Disconnect from your drive? The log stays on this device, and the copy in your drive is left as it is.')) return;
   disconnect();

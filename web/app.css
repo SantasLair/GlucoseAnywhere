@@ -318,6 +318,7 @@ input:focus, select:focus { border-color: var(--accent); }
 .key:first-child { margin-left: 0; }
 .key-iob { background: var(--iob); } .key-dose { background: var(--accent); } .key-carb { background: var(--carb); }
 .c-iob-line { stroke: var(--iob); } .c-iob-fill { fill: var(--iob); }
+.c-dose-dot { fill: var(--accent); } .c-mark { fill: var(--text); font-weight: 600; }
 .c-dose { stroke: var(--accent); } .c-carb { fill: var(--carb); } .c-now { stroke: var(--muted); }
 .wiz { margin: 12px 0 0; }
 .wiz > div { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 15px; }

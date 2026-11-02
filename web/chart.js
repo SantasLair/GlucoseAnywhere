@@ -58,6 +58,23 @@ export function drawChart(el, o) {
     s += `<circle class="${c}" cx="${x(r.t).toFixed(1)}" cy="${y(r.v).toFixed(1)}" r="${rad.toFixed(1)}"/>`;
   }
 
+  // Boluses (blue, with units) and carbs (orange, with grams) sit just above the glucose line where they were taken, like Nightscout.
+  const near = t => {
+    let best = null;
+    for (const r of vis) if (!best || Math.abs(r.t - t) < Math.abs(best.t - t)) best = r;
+    return best && Math.abs(best.t - t) <= 15 * 60e3 ? best.v : null;
+  };
+  const mark = (list, cls, text, lift) => {
+    for (const d of list ?? []) {
+      if (d.t < start || d.t > end) continue;
+      const cy = Math.max(m.t + 8 * k, y(near(d.t) ?? 120) - lift * k);
+      s += `<circle class="${cls}" cx="${x(d.t).toFixed(1)}" cy="${cy.toFixed(1)}" r="${(5 * k).toFixed(1)}"/>`;
+      s += `<text class="c-mark" x="${x(d.t).toFixed(1)}" y="${(cy - 8 * k).toFixed(1)}" text-anchor="middle" font-size="${fs}">${text(d)}</text>`;
+    }
+  };
+  mark(o.insulin, 'c-dose-dot', d => `${+d.v.toFixed(2)}u`, 22);
+  mark(o.carbs, 'c-carb', d => `${Math.round(d.v)}g`, 42);
+
   el.innerHTML = s + '</svg>';
 }
 
