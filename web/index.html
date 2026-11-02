@@ -180,7 +180,8 @@
             </label>
           </div>
           <button id="wBgReset" class="link small" hidden>Use the sensor reading</button>
-          <div class="wiz-units"><span>Units</span><b id="wizUnits">0</b><i>u</i></div>
+          <div class="wiz-units"><span>Units <em id="wUnitsSrc"></em></span><input id="wizUnits" type="text" inputmode="decimal" placeholder="--" aria-label="Units to log"><i>u</i></div>
+          <button id="wUnitsReset" class="link small" hidden>Use the suggested dose</button>
           <dl id="wizRows" class="wiz"></dl>
           <p id="wizWarn" class="msg warn"></p>
           <button id="wizLog" class="btn primary block">Next: log this dose</button>

@@ -14,7 +14,7 @@ import {
   fmtDelta, glucoseClass, fmtAge, fmtClock, esc,
 } from './format.js';
 
-const VERSION = '1.5.0';
+const VERSION = '1.5.1';
 const DAY_MS = 24 * 3600e3;
 const POLL_MS = 60e3;          // check once a minute; Dexcom produces a reading every 5
 const $ = id => document.getElementById(id);
@@ -549,6 +549,7 @@ const meals = () => treatments.filter(r => r.kind === 'carbs');
 const fmtU = v => (Math.round(v * 100) / 100).toFixed(2);
 const fmtDose = v => String(Math.round(v * 100) / 100);
 
+let wUnitsEdited = false;   // the units box shows the suggested dose until the user types in it
 let wBgEdited = false;   // the BG tile follows the sensor until the user types in it
 
 /** BG for the wizard in mg/dL: what's typed in the tile if edited, else the sensor if it's current. */
@@ -626,6 +627,7 @@ function openLogPage() {
 
 function openInsulinPage() {
   wBgEdited = false;
+  wUnitsEdited = false;
   $('wCarbs').value = '';
   setMsg('logError');
   resetLogTime();
@@ -706,8 +708,10 @@ function renderWizard() {
     rows += row('Total', `${fmtU(Math.max(0, w.raw))} u`, 'total');
   }
   $('wizRows').innerHTML = rows;
-  $('wizUnits').textContent = w ? fmtDose(w.units) : '--';
-  $('wizLog').disabled = !w;
+  if (!wUnitsEdited) $('wizUnits').value = w ? fmtDose(w.units) : '';
+  $('wUnitsSrc').textContent = wUnitsEdited ? '(entered)' : '(suggested)';
+  $('wUnitsReset').hidden = !wUnitsEdited;
+  $('wizLog').disabled = !w && !(wUnitsEdited && parseNum($('wizUnits').value) > 0);
 
   let warn = '';
   if (!w) warn = 'Enter carbs or a BG to calculate.';
@@ -721,12 +725,16 @@ $('wCarbs').addEventListener('input', renderWizard);
 $('wBg').addEventListener('input', () => { wBgEdited = true; renderWizard(); });
 $('wBgReset').addEventListener('click', () => { wBgEdited = false; renderWizard(); });
 
+$('wizUnits').addEventListener('input', () => { wUnitsEdited = true; renderWizard(); });
+$('wUnitsReset').addEventListener('click', () => { wUnitsEdited = false; renderWizard(); });
+
 $('wizLog').addEventListener('click', () => {
   const carbs = Math.max(0, parseNum($('wCarbs').value) ?? 0);
   const w = wizardNow(carbs, true);
-  if (!w) return;
+  const units = wUnitsEdited ? Math.max(0, parseNum($('wizUnits').value) ?? 0) : w?.units;
+  if (units == null) return;
   $('lType').value = 'rapid';
-  $('lIns').value = w.units ? fmtDose(w.units) : '';
+  $('lIns').value = units ? fmtDose(units) : '';
   $('lCarbs').value = carbs || '';
   navTo('log');
   $('logCard').scrollIntoView({ block: 'center' });
@@ -753,6 +761,7 @@ $('logForm').addEventListener('submit', async e => {
   $('lType').value = 'rapid';
   await loadRecentExtras();
   wBgEdited = false;
+  wUnitsEdited = false;
   resetLogTime();
   renderInsulin();
   syncSoon();
