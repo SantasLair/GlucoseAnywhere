@@ -397,3 +397,32 @@ input[type=datetime-local] { min-width: 0; }
   .hb-stat span { font-size: 12px; color: var(--muted); margin-top: 2px; }
   .home-bar .btn { margin-left: auto; min-width: 120px; min-height: 52px; font-size: 17px; }
 }
+
+/* Phone held upright: the icon row becomes a bottom bar, within reach of the thumb. */
+.tabbar { display: none; }
+@media (max-width: 600px) and (orientation: portrait) {
+  #view-home:not(.chart-focus) .card-tools { display: none; }
+  #view-home:not(.chart-focus) .glucose-card { padding-top: 20px; }
+  #view-home:not(.chart-focus) { padding-bottom: 0; }
+  #view-home:not(.chart-focus) .tabbar {
+    display: flex; flex: none; margin: 6px -10px 0; padding: 6px 4px calc(var(--sab) + 4px);
+    border-top: 1px solid var(--line); background: var(--surface);
+  }
+  .tabbar button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 54px; color: var(--muted); font-size: 11px; font-weight: 600; }
+  .tabbar button:active { color: var(--text); }
+  .tabbar button[hidden] { display: none; }
+  #view-home:not(.chart-focus) .home-bar { cursor: pointer; }
+  .hb-go { margin-left: auto; color: var(--muted); font-size: 32px; line-height: 1; padding-right: 6px; }
+}
+
+/* Log entries: tap to edit */
+.recent .row { flex: 1; text-align: left; min-height: 48px; padding: 6px 0; }
+.recent .row b { font-variant-numeric: tabular-nums; }
+.edit-box { background: var(--raised); border-radius: 14px; padding: 12px 14px 14px; margin: 12px 0; }
+.edit-box h4 { font-size: 15px; }
+.edit-box .field { margin-top: 10px; }
+.edit-box input { background: var(--surface); }
+#logRange { margin-top: 10px; }
+#logRange button { font-size: 14px; }
+
+.two > * { min-width: 0; }

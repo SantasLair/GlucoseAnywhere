@@ -1,7 +1,7 @@
 import { DexcomClient, DexcomError } from './dexcom.js';
 import { drawChart, drawIobChart, chartFills } from './chart.js';
 import { configured, connect, finishSignIn, disconnect, connectedTo, syncNow, noteDeleted, needsReconnect, PROVIDERS } from './sync.js';
-import { curveParams, iobAt, cobAt, iobSeries, activityAt, activitySeries, wizardReady, wizard } from './insulin.js';
+import { curveParams, iobAt, iobFraction, cobAt, iobSeries, activityAt, activitySeries, wizardReady, wizard } from './insulin.js';
 import {
   loadPrefs, savePrefs, loadCreds, saveCreds, clearCreds,
   putReadings, getReadings, pruneReadings, forgetEverything, describeStorage,
@@ -13,7 +13,7 @@ import {
   fmtDelta, glucoseClass, fmtAge, fmtClock, esc,
 } from './format.js';
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const DAY_MS = 24 * 3600e3;
 const POLL_MS = 60e3;          // check once a minute; Dexcom produces a reading every 5
 const $ = id => document.getElementById(id);
@@ -328,7 +328,33 @@ function renderHomeBar() {
   $('hbSuggestBox').hidden = !(w && w.units > 0);
   if (w) $('hbSuggest').textContent = fmtDose(w.units);
 }
-$('hbBolus').addEventListener('click', openInsulin);
+$('homeBar').addEventListener('click', openInsulin);
+$('homeBar').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openInsulin(); } });
+
+// The bottom bar on a phone does what the icon row does on a bigger screen.
+$('tabBar').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  ({
+    chart: () => setLayout(prefs.layout === 'chart' ? 'standard' : 'chart'),
+    insulin: openInsulin,
+    big: () => enterBig(true),
+    settings: openSettings,
+  })[b.dataset.act]?.();
+});
+
+// Refresh has no button on the phone layout: pull down on the reading, or tap the line under it.
+let pullY = null;
+$('view-home').addEventListener('touchstart', e => {
+  pullY = phoneQuery.matches && prefs.layout !== 'chart' && e.touches[0].clientY < window.innerHeight * 0.5 ? e.touches[0].clientY : null;
+}, { passive: true });
+$('view-home').addEventListener('touchend', e => {
+  if (pullY == null) return;
+  const dy = e.changedTouches[0].clientY - pullY;
+  pullY = null;
+  if (dy > 90) { toast('Refreshing…'); $('refreshBtn').click(); }
+}, { passive: true });
+$('gMeta').addEventListener('click', () => { if (phoneQuery.matches && prefs.layout !== 'chart') $('refreshBtn').click(); });
 
 function renderHome() {
   renderHomeBar();
@@ -458,6 +484,7 @@ for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEve
 /** Show or hide everything insulin-related to match the opt-in switch. */
 function applyInsulinOptional() {
   $('insulinBtn').hidden = !prefs.insulinOn;
+  $('tbInsulin').hidden = !prefs.insulinOn;
   $('insulinBody').hidden = !prefs.insulinOn;
   $('sInsulinOn').checked = !!prefs.insulinOn;
   if (!prefs.insulinOn && tab === 'insulin') closePage();
@@ -631,6 +658,7 @@ $('logForm').addEventListener('submit', async e => {
     ...(carbs > 0 ? [{ t, kind: 'carbs', v: carbs }] : []),
   ]);
   treatments = [...treatments, ...rows].sort((a, b) => a.t - b.t);
+  if (logRange === 'all') allRows = await getTreatments(0);
   $('lIns').value = $('lCarbs').value = $('wCarbs').value = '';
   wBgEdited = false;
   resetLogTime();
@@ -639,24 +667,87 @@ $('logForm').addEventListener('submit', async e => {
   toast('Saved.');
 });
 
+// The log: the last 24 hours, or everything ever logged. Tap an entry to edit it.
+let logRange = 'day', allRows = [], editing = null;
+const shownRows = () => (logRange === 'all' ? allRows : treatments);
+const whenLabel = t => {
+  const d = new Date(t);
+  return (d.toDateString() === new Date().toDateString() ? '' : d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ', ') + fmtClock(t);
+};
+
+/** Reload what the log shows and redraw everything that depends on it. */
+async function refreshLog() {
+  treatments = await getTreatments(nowMs() - DAY_MS);
+  if (logRange === 'all') allRows = await getTreatments(0);
+  renderInsulin();
+}
+
 function renderRecent() {
-  const list = [...treatments].reverse();
+  const now = nowMs(), c = curve();
+  for (const b of $('logRange').children) b.classList.toggle('active', b.dataset.r === logRange);
+  const list = [...shownRows()].reverse();
   $('recentEmpty').hidden = list.length > 0;
   $('recentList').innerHTML = list.map(r => {
     const ins = r.kind === 'insulin';
-    return `<li><span class="what"><b class="${ins ? 'ins' : 'car'}">${fmtDose(r.v)} ${ins ? 'u insulin' : 'g carbs'}</b><br>` +
-      `<span class="when">${esc(fmtClock(r.t))} · ${esc(fmtAge(nowMs() - r.t))}</span></span>` +
+    const left = ins ? r.v * iobFraction((now - r.t) / 60e3, c) : 0;
+    const when = [whenLabel(r.t), now - r.t < DAY_MS ? fmtAge(now - r.t) : '', left > 0.005 ? `${fmtU(left)} u still active` : ''].filter(Boolean).join(' · ');
+    return `<li><button class="row" data-edit="${esc(r.id)}" aria-label="Edit this entry"><b class="${ins ? 'ins' : 'car'}">${fmtDose(r.v)} ${ins ? 'u insulin' : 'g carbs'}</b><br>` +
+      `<span class="when">${esc(when)}</span></button>` +
       `<button class="del" data-del="${esc(r.id)}" aria-label="Delete this entry" title="Delete">×</button></li>`;
   }).join('');
 }
-$('recentList').addEventListener('click', async e => {
-  const b = e.target.closest('[data-del]');
-  if (!b || !confirm('Delete this entry?')) return;
-  await deleteTreatment(b.dataset.del);
-  noteDeleted(b.dataset.del);
+
+async function deleteEntry(id) {
+  if (!confirm('Delete this entry?')) return false;
+  await deleteTreatment(id);
+  noteDeleted(id);
   syncSoon();
-  treatments = treatments.filter(r => r.id !== b.dataset.del);
-  renderInsulin();
+  await refreshLog();
+  return true;
+}
+
+$('logRange').addEventListener('click', async e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  logRange = b.dataset.r;
+  if (logRange === 'all') allRows = await getTreatments(0);
+  hideEdit();
+  renderRecent();
+});
+
+function hideEdit() { editing = null; $('editForm').hidden = true; setMsg('editError'); }
+
+$('recentList').addEventListener('click', e => {
+  const del = e.target.closest('[data-del]');
+  if (del) return void deleteEntry(del.dataset.del);
+  const row = e.target.closest('[data-edit]');
+  if (!row) return;
+  editing = shownRows().find(r => r.id === row.dataset.edit) ?? null;
+  if (!editing) return;
+  const ins = editing.kind === 'insulin';
+  $('editTitle').textContent = ins ? 'Edit insulin entry' : 'Edit carbs entry';
+  $('eAmtLabel').textContent = ins ? 'Insulin (units)' : 'Carbs (g)';
+  $('eAmt').value = fmtDose(editing.v);
+  $('eTime').value = toLocalInput(editing.t);
+  setMsg('editError');
+  $('editForm').hidden = false;
+  $('editForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
+$('editCancel').addEventListener('click', hideEdit);
+$('editDelete').addEventListener('click', async () => { if (editing && await deleteEntry(editing.id)) hideEdit(); });
+$('editForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!editing) return;
+  const ins = editing.kind === 'insulin';
+  const v = parseNum($('eAmt').value), t = new Date($('eTime').value).getTime();
+  if (!(v > 0) || v > (ins ? 100 : 500)) return setMsg('editError', ins ? 'Enter insulin between 0 and 100 units.' : 'Enter carbs between 0 and 500 g.');
+  if (!Number.isFinite(t) || t > nowMs() + 5 * 60e3) return setMsg('editError', 'Choose a time that is not in the future.');
+  await putTreatments([{ ...editing, t, v, u: nowMs() }]);   // same id replaces it; u says when it was last edited
+  hideEdit();
+  await refreshLog();
+  syncSoon();
+  toast('Saved.');
 });
 
 // Settings fields. Each saves as soon as its value is valid; for the three dose-affecting ones, blank clears it.
@@ -765,7 +856,7 @@ $('importFile').addEventListener('change', async e => {
     const data = JSON.parse(await file.text());
     const rows = (data.treatments ?? [])
       .filter(r => r && typeof r.id === 'string' && Number.isFinite(r.t) && (r.kind === 'insulin' || r.kind === 'carbs') && r.v > 0 && r.v < 1000)
-      .map(({ id, t, kind, v }) => ({ id, t, kind, v }));
+      .map(({ id, t, kind, v, u }) => ({ id, t, kind, v, ...(u ? { u } : {}) }));
     if (!rows.length) return toast('No log entries found in that file.', true);
     await putTreatments(rows);   // an id already here is replaced, so importing twice adds nothing
     treatments = await getTreatments(nowMs() - DAY_MS);

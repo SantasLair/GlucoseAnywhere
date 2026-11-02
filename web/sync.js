@@ -174,10 +174,16 @@ export async function syncNow() {
   const local = await getTreatments(0);
   const merged = new Map(local.map(r => [r.id, r]));
   const before = merged.size;
-  for (const r of remote?.treatments ?? []) if (validRow(r) && !merged.has(r.id)) merged.set(r.id, { id: r.id, t: r.t, kind: r.kind, v: r.v });
+  for (const r of remote?.treatments ?? []) {
+    if (!validRow(r)) continue;
+    const mine = merged.get(r.id);
+    if (!mine || (r.u ?? 0) > (mine.u ?? 0)) merged.set(r.id, { id: r.id, t: r.t, kind: r.kind, v: r.v, ...(r.u ? { u: r.u } : {}) });
+  }
   for (const id of tomb.keys()) if (merged.has(id)) { merged.delete(id); await deleteTreatment(id); }
-  const added = [...merged.values()].filter(r => !local.some(l => l.id === r.id));
-  if (added.length) await putTreatments(added);
+  const localById = new Map(local.map(r => [r.id, r]));
+  const changed = [...merged.values()].filter(r => localById.get(r.id)?.u !== r.u || localById.get(r.id)?.v !== r.v || localById.get(r.id)?.t !== r.t);
+  const added = changed.filter(r => !localById.has(r.id));
+  if (changed.length) await putTreatments(changed);   // new entries, and edits made on another device
 
   const rows = [...merged.values()].sort((a, b) => a.t - b.t);
   await upload(provider, token, { app: 'GlucoseAnywhere', version: 1, treatments: rows, deleted: [...tomb.values()] });

@@ -128,11 +128,25 @@
         </div>
         <div id="chart" class="chart"></div>
       </div>
-      <div id="homeBar" class="home-bar" hidden>
+      <div id="homeBar" class="home-bar" role="button" tabindex="0" aria-label="Open the insulin page" hidden>
         <div class="hb-stat"><b id="hbIob">0.00</b><span>u on board</span></div>
         <div class="hb-stat" id="hbSuggestBox" hidden><b id="hbSuggest">0</b><span>u suggested</span></div>
-        <button id="hbBolus" class="btn primary">Bolus</button>
+        <span class="hb-go" aria-hidden="true">&rsaquo;</span>
       </div>
+      <nav id="tabBar" class="tabbar" aria-label="Main">
+        <button data-act="chart" aria-label="Chart view">
+          <svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 4v16h16M7 15l3.5-4 3 2.5L19 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Chart</span>
+        </button>
+        <button data-act="insulin" id="tbInsulin" aria-label="Insulin log and bolus" hidden>
+          <svg viewBox="0 0 24 24" width="26" height="26"><path d="M12 3c3 4.2 5.5 7 5.5 10.2a5.5 5.5 0 0 1-11 0C6.5 10 9 7.2 12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span>Bolus</span>
+        </button>
+        <button data-act="big" aria-label="Big number">
+          <svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Big</span>
+        </button>
+        <button data-act="settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>Settings</span>
+        </button>
+      </nav>
     </section>
 
     <!-- INSULIN -->
@@ -197,7 +211,23 @@
       </div>
 
       <div class="card">
-        <h3>Last 24 hours</h3>
+        <h3>Log</h3>
+        <div class="seg" id="logRange">
+          <button data-r="day">Last 24 hours</button><button data-r="all">All history</button>
+        </div>
+        <form id="editForm" class="edit-box" hidden>
+          <h4 id="editTitle">Edit entry</h4>
+          <div>
+            <label class="field"><span id="eAmtLabel">Amount</span> <input id="eAmt" type="text" inputmode="decimal"></label>
+            <label class="field">Time <input id="eTime" type="datetime-local"></label>
+          </div>
+          <p id="editError" class="msg error" role="alert"></p>
+          <div class="two">
+            <button type="button" id="editCancel" class="btn block">Cancel</button>
+            <button type="submit" class="btn primary block">Save changes</button>
+          </div>
+          <button type="button" id="editDelete" class="btn danger block">Delete entry</button>
+        </form>
         <ul id="recentList" class="recent"></ul>
         <p id="recentEmpty" class="muted small">Nothing logged yet.</p>
       </div>
