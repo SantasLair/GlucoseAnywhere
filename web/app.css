@@ -267,7 +267,7 @@ input:focus, select:focus { border-color: var(--accent); }
 #view-home.chart-focus .glucose-card {
   grid-column: 1; grid-row: 2; margin: 0; min-height: 0; container-type: normal;
   display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 16px;
-  text-align: left; padding: 10px 284px 10px 16px;
+  text-align: left; padding: 10px 328px 10px 16px;
 }
 #view-home.chart-focus .chart-card { grid-column: 1; grid-row: 3; margin: 0; min-height: 0; display: flex; flex-direction: column; }
 #view-home.chart-focus .chart { position: relative; flex: 1; min-height: 120px; }
@@ -279,7 +279,7 @@ input:focus, select:focus { border-color: var(--accent); }
 #view-home.chart-focus .gmeta { margin: 0; font-size: 15px; min-width: 0; overflow-wrap: anywhere; }
 #view-home.chart-focus .card-tools { top: 50%; transform: translateY(-50%); }
 @media (max-width: 600px) {
-  #view-home.chart-focus .glucose-card { padding-right: 188px; gap: 10px; }
+  #view-home.chart-focus .glucose-card { padding-right: 226px; gap: 10px; }
   #view-home.chart-focus .gmeta { font-size: 13px; }
 }
 
@@ -337,8 +337,8 @@ input:focus, select:focus { border-color: var(--accent); }
 .recent .del { color: var(--muted); width: 44px; height: 44px; font-size: 22px; }
 input[type=datetime-local] { min-width: 0; }
 @media (min-width: 900px) and (min-height: 600px) {
-  #view-insulin { column-width: 380px; column-gap: 20px; max-width: 1240px; margin: 0 auto; }
-  #view-insulin .card { break-inside: avoid; }
+  #view-insulin, #view-log { column-width: 380px; column-gap: 20px; max-width: 1240px; margin: 0 auto; }
+  #view-insulin .card, #view-log .card { break-inside: avoid; }
 }
 
 /* Phone portrait: the buttons get their own row above the reading instead of sitting on top of it. */
@@ -398,19 +398,24 @@ input[type=datetime-local] { min-width: 0; }
   .home-bar .btn { margin-left: auto; min-width: 120px; min-height: 52px; font-size: 17px; }
 }
 
-/* Phone held upright: the icon row becomes a bottom bar, within reach of the thumb. */
+/* Phone held upright: a tab bar fixed to the bottom of the screen on every main page, like a native iOS app.
+   The pages scroll underneath it, and they leave room for it with --tabbar-h. */
 .tabbar { display: none; }
 @media (max-width: 600px) and (orientation: portrait) {
-  #view-home:not(.chart-focus) .card-tools { display: none; }
-  #view-home:not(.chart-focus) .glucose-card { padding-top: 20px; }
-  #view-home:not(.chart-focus) { padding-bottom: 0; }
-  #view-home:not(.chart-focus) .tabbar {
-    display: flex; flex: none; margin: 6px -10px 0; padding: 6px 4px calc(var(--sab) + 4px);
-    border-top: 1px solid var(--line); background: var(--surface);
+  body.has-nav { --tabbar-h: 62px; }
+  body.has-nav .tabbar {
+    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    padding: 6px calc(var(--sar) + 4px) calc(var(--sab) + 4px) calc(var(--sal) + 4px);
+    background: var(--surface); border-top: 1px solid var(--line);
+    transform: translateZ(0);
   }
-  .tabbar button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 54px; color: var(--muted); font-size: 11px; font-weight: 600; }
+  .tabbar button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 52px; color: var(--muted); font-size: 11px; font-weight: 600; }
+  .tabbar button.active { color: var(--accent); }
   .tabbar button:active { color: var(--text); }
   .tabbar button[hidden] { display: none; }
+  #view-home:not(.chart-focus) .card-tools { display: none; }
+  #view-home:not(.chart-focus) .glucose-card { padding-top: 20px; }
+  #view-home:not(.chart-focus) { padding-bottom: calc(var(--tabbar-h) + var(--sab) + 4px); }
   #view-home:not(.chart-focus) .home-bar { cursor: pointer; }
   .hb-go { margin-left: auto; color: var(--muted); font-size: 32px; line-height: 1; padding-right: 6px; }
 }
@@ -426,3 +431,14 @@ input[type=datetime-local] { min-width: 0; }
 #logRange button { font-size: 14px; }
 
 .two > * { min-width: 0; }
+
+/* One-tap medication buttons, and the other kinds of log entry */
+.quick { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.quick-btn { flex: 1 1 140px; min-height: 60px; padding: 8px 12px; border-radius: 14px; background: var(--raised); font-weight: 700; font-size: 17px; line-height: 1.2; }
+.quick-btn:active { background: var(--line); }
+.quick-btn.done { color: var(--ok); }
+.quick-btn .when { font-weight: 400; font-size: 12px; color: var(--muted); }
+.recent .row b.bas { color: var(--act); }
+.recent .row b.med { color: var(--ok); }
+textarea { font: inherit; font-size: 16px; color: var(--text); background: var(--raised); border: 1px solid transparent; border-radius: 10px; padding: 10px 12px; width: 100%; margin-top: 4px; resize: vertical; outline: none; }
+textarea:focus { border-color: var(--accent); }

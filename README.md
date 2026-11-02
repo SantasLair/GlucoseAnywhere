@@ -1,6 +1,6 @@
 # GlucoseAnywhere
 
-See your Dexcom glucose reading in any browser or on Windows. Not affiliated with Dexcom. Not a medical device.
+Free, open-source blood sugar tools: a live Dexcom glucose display for any browser or Windows, plus optional insulin and carb logging, insulin on board, and a bolus calculator in the web app. Built as one person's day-to-day diabetes toolkit and shared so others can use it too. Not affiliated with Dexcom. Not a medical device.
 
 **Use it now: [glucoseanywhere.com](https://glucoseanywhere.com)**. It's free and runs in your browser, with nothing to install.
 

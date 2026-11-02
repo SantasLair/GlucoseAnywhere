@@ -20,6 +20,7 @@ const KEEP_MS = 90 * 24 * 3600e3;
 
 export const DEFAULT_PREFS = { useMmol: false, low: 70, high: 180, range: 6, startBig: false, theme: 'auto', layout: 'standard', stayAwake: true,
   iobGraph: false, iobKind: 'iob',               // IOB is a number; the graph is opt-in
+  medButtons: [{ label: 'Bedtime meds', items: [] }],   // one-tap buttons on the Insulin page for oral medications
   insulinOn: false,                             // the whole insulin log / wizard feature is opt-in
   // Insulin calculator. Dose-affecting values start empty: the wizard stays off until you enter your own.
   icr: null, isf: null, target: null,          // g per unit, mg/dL per unit, mg/dL
@@ -134,7 +135,26 @@ export async function pruneReadings(now = Date.now()) {
   } catch { /* nothing to prune */ }
 }
 
-// ---- treatments: { id, t, kind: 'insulin' | 'carbs', v }  (units or grams)
+// ---- treatments: { id, t, kind, v }
+//   insulin  rapid-acting, v = units (counts toward insulin on board)
+//   basal    long-acting such as Tresiba, v = units (logged only, never counted)
+//   carbs    v = grams
+//   med      oral medications taken with one tap: name = the button's label, items = the medications in it (a copy, so
+//            history stays right if the button is changed later), v = 1
+export const TREATMENT_KINDS = ['insulin', 'basal', 'carbs', 'med'];
+
+/** A clean copy of an entry from outside (an import, or the cloud file), or null if it isn't one. */
+export function cleanTreatment(r) {
+  if (!r || typeof r.id !== 'string' || !Number.isFinite(r.t) || !TREATMENT_KINDS.includes(r.kind) || !(r.v > 0 && r.v < 1000)) return null;
+  const out = { id: r.id.slice(0, 64), t: r.t, kind: r.kind, v: r.v };
+  if (r.kind === 'med') {
+    if (typeof r.name !== 'string' || !r.name.trim()) return null;
+    out.name = r.name.trim().slice(0, 40);
+    if (Array.isArray(r.items)) out.items = r.items.filter(i => typeof i === 'string' && i.trim()).map(i => i.trim().slice(0, 40)).slice(0, 12);
+  }
+  if (r.u) out.u = r.u;
+  return out;
+}
 const newId = t => `${t}-${Math.random().toString(36).slice(2, 7)}`;
 
 /** Save entries; ones without an id get one. Returns what was saved. */

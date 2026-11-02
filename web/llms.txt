@@ -1,20 +1,23 @@
 # GlucoseAnywhere
 
-> A free, open-source, always-on glucose display for Dexcom Share. It runs in any modern browser on a phone, tablet or computer, so a spare tablet can become a big wall or desk display. Your Dexcom sign-in and readings stay on your own device; it has no accounts and adds no ads, analytics or tracking. Like any website, its host (Cloudflare) sees page requests and gives the owner simple traffic counts.
+> A free, open-source set of personal blood sugar tools that runs in any modern browser on a phone, tablet or computer. It starts with an always-on glucose display for Dexcom Share, and adds an optional insulin and carb log, insulin on board, and a bolus calculator. Your data stays on your own device; it has no accounts and adds no ads, analytics or tracking. Like any website, its host (Cloudflare) sees page requests and gives the owner simple traffic counts.
 
-GlucoseAnywhere shows the current glucose reading from a Dexcom sensor with a trend arrow and a chart. It needs the Dexcom account of the person wearing the sensor, with Share turned on and at least one follower in the Dexcom app. It is not a medical device, has no alerts, and is not affiliated with or endorsed by Dexcom. It uses Dexcom's unofficial Share service, which can change or stop working at any time.
+GlucoseAnywhere shows the current glucose reading from a Dexcom sensor with a trend arrow and a chart. It needs the Dexcom account of the person wearing the sensor, with Share turned on and at least one follower in the Dexcom app. The optional insulin tools are off until the user turns them on, and the bolus calculator stays off until the user enters their own carb ratio, correction factor and target. It is not a medical device, has no alerts, and is not affiliated with or endorsed by Dexcom. It uses Dexcom's unofficial Share service, which can change or stop working at any time.
 
 ## Features
 
-- Big-number mode that fills the screen and keeps it awake, in portrait or landscape
-- Chart view with the graph first and a small reading above it
-- Light and dark themes, and a desktop layout that uses the whole window
+- Big-number mode that fills the screen and keeps it awake, in portrait or landscape, and a chart view with the graph first
+- Optional insulin and carb log that can be edited, with full history kept on the device
+- Optional insulin on board and insulin activity graphs, using the user's own insulin peak time and duration
+- Optional bolus calculator (carbs, correction and insulin on board) as a rough estimate to check against a care team's guidance
+- Optional sync of the insulin log to the user's own Google Drive or OneDrive, or export and import as a file
+- Light and dark themes, a one-screen layout for phones, and a desktop layout that uses the whole window
 - Works offline with saved readings, and can be added to a home screen like an app
 - Nothing to install or host; free under the MIT license
 
 ## Links
 
 - [Open the app](https://glucoseanywhere.com/): sign in and view readings
-- [Source code](https://github.com/SantasLair/GlucoseAnywhere): how it works, and how to verify it only talks to Dexcom
+- [Source code](https://github.com/SantasLair/GlucoseAnywhere): how it works, and how to verify it only talks to Dexcom (and, only if the user links one, their own Google Drive or OneDrive)
 - [Report a problem](https://github.com/SantasLair/GlucoseAnywhere/issues)
 - Feedback: feedback@glucoseanywhere.com

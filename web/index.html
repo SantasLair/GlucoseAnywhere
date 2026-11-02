@@ -3,18 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GlucoseAnywhere: big-screen glucose display for any device</title>
-<meta name="description" content="A free, no-setup, always-on glucose display for Dexcom Share. Works in any browser, in portrait or landscape. Your sign-in and readings stay on your device and go only to Dexcom. Open source.">
+<title>GlucoseAnywhere: free blood sugar tools for any device</title>
+<meta name="description" content="Free, open-source blood sugar tools that run in your browser: a live Dexcom glucose display, an optional insulin and carb log with insulin on board, and a bolus calculator. You stay in control of your data.">
 <link rel="canonical" href="https://glucoseanywhere.com/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="GlucoseAnywhere">
-<meta property="og:title" content="GlucoseAnywhere: big-screen glucose display for any device">
-<meta property="og:description" content="Turn any tablet, phone or PC into an always-on glucose display. Free, open source, and you stay in control of your data.">
+<meta property="og:title" content="GlucoseAnywhere: free blood sugar tools for any device">
+<meta property="og:description" content="A free, open-source toolkit for managing your blood sugar: a live Dexcom display, an insulin and carb log, and an optional bolus calculator. You stay in control of your data.">
 <meta property="og:url" content="https://glucoseanywhere.com/">
 <meta property="og:image" content="https://glucoseanywhere.com/icons/icon-512.png">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="GlucoseAnywhere: big-screen glucose display for any device">
-<meta name="twitter:description" content="Turn any tablet, phone or PC into an always-on glucose display. Free, open source, and you stay in control of your data.">
+<meta name="twitter:title" content="GlucoseAnywhere: free blood sugar tools for any device">
+<meta name="twitter:description" content="A free, open-source toolkit for managing your blood sugar: a live Dexcom display, an insulin and carb log, and an optional bolus calculator. You stay in control of your data.">
 <meta name="theme-color" content="#16181D">
 <meta name="color-scheme" content="dark light">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -34,7 +34,7 @@
   <form id="authForm" class="card auth-card" autocomplete="on">
     <img class="auth-logo" src="icons/icon.svg" alt="" width="64" height="64">
     <h1>GlucoseAnywhere</h1>
-    <p class="muted">See your Dexcom reading in any browser. Sign in with the Dexcom account of the <b>person wearing the sensor</b>. In the Dexcom app, Share must be on with at least one follower.</p>
+    <p class="muted">Your blood sugar tools, starting with your live Dexcom reading. Sign in with the Dexcom account of the <b>person wearing the sensor</b>. In the Dexcom app, Share must be on with at least one follower.</p>
     <label class="field">Dexcom username
       <input id="aUser" name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required>
     </label>
@@ -55,14 +55,16 @@
   </form>
 
   <div class="landing">
-    <h2>A big, always-on glucose display</h2>
-    <p>GlucoseAnywhere shows the current reading from a Dexcom sensor, with a trend arrow and a chart, on any phone, tablet or computer. Put a spare tablet on the wall or desk, or keep it open on a PC.</p>
+    <h2>Your personal blood sugar toolkit</h2>
+    <p>GlucoseAnywhere is a free set of blood sugar tools that runs in your browser on any phone, tablet or computer. It starts with your live Dexcom reading, a trend arrow and a chart, and adds optional tools for logging insulin and carbs. It was built to manage one person's diabetes day to day and is shared so others can use it too.</p>
 
     <ul class="features">
-      <li><b>Chart view</b> puts the graph first, with a small reading above it, like a CGM display.</li>
-      <li><b>Big-number mode</b> fills the window and keeps the screen awake, in portrait or landscape. Go fullscreen when you want to.</li>
-      <li><b>Light and dark themes,</b> and a layout that uses the whole window on a desktop.</li>
-      <li><b>Nothing to install or host.</b> It runs in any modern browser, and you can add it to your home screen like an app.</li>
+      <li><b>Live glucose.</b> A big, always-on display for a phone, a spare tablet or a PC. Chart view puts the graph first, and big-number mode fills the screen and keeps it awake.</li>
+      <li><b>Insulin and carb log (optional).</b> Log doses and meals, including ones from earlier, and edit or delete entries any time. Your full history stays on your device.</li>
+      <li><b>Insulin on board (optional).</b> See how much insulin is still working and how fast, from your own insulin's peak time and duration.</li>
+      <li><b>Bolus calculator (optional).</b> A pump-style estimate from your own carb ratio, correction factor and target. It stays off until you enter your own numbers.</li>
+      <li><b>You keep your data.</b> Everything is stored on your device. Optionally keep a copy of the insulin log in your own Google Drive or OneDrive, or export it as a file.</li>
+      <li><b>Light and dark themes,</b> a layout built for phones, and one that uses the whole window on a desktop. Add it to your home screen like an app.</li>
       <li><b>Free, no ads, no account.</b> Open source under the MIT license.</li>
     </ul>
 
@@ -88,7 +90,7 @@
 </section>
 
 <noscript>
-  <p class="nojs">GlucoseAnywhere is a free, open-source glucose display for Dexcom Share. It needs JavaScript to run in your browser. Nothing is sent to us: your sign-in and readings stay on your device and go only to Dexcom.</p>
+  <p class="nojs">GlucoseAnywhere is a free, open-source set of blood sugar tools, starting with a live Dexcom Share glucose display. It needs JavaScript to run in your browser. Nothing is sent to us: your sign-in and readings stay on your device and go only to Dexcom.</p>
 </noscript>
 
 <div id="app" hidden>
@@ -103,6 +105,9 @@
           </button>
           <button id="insulinBtn" class="icon-btn" aria-label="Insulin log and wizard" title="Insulin (I)">
             <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 3c3 4.2 5.5 7 5.5 10.2a5.5 5.5 0 0 1-11 0C6.5 10 9 7.2 12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </button>
+          <button id="logBtn" class="icon-btn" aria-label="Logbook" title="Logbook (L)">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4zM5 17a3 3 0 0 1 3-3h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
           </button>
           <button id="fsBtn" class="icon-btn" aria-label="Fullscreen" title="Fullscreen (F)" hidden>
             <svg viewBox="0 0 24 24" width="22" height="22"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -133,20 +138,6 @@
         <div class="hb-stat" id="hbSuggestBox" hidden><b id="hbSuggest">0</b><span>u suggested</span></div>
         <span class="hb-go" aria-hidden="true">&rsaquo;</span>
       </div>
-      <nav id="tabBar" class="tabbar" aria-label="Main">
-        <button data-act="chart" aria-label="Chart view">
-          <svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 4v16h16M7 15l3.5-4 3 2.5L19 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Chart</span>
-        </button>
-        <button data-act="insulin" id="tbInsulin" aria-label="Insulin log and bolus" hidden>
-          <svg viewBox="0 0 24 24" width="26" height="26"><path d="M12 3c3 4.2 5.5 7 5.5 10.2a5.5 5.5 0 0 1-11 0C6.5 10 9 7.2 12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span>Bolus</span>
-        </button>
-        <button data-act="big" aria-label="Big number">
-          <svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Big</span>
-        </button>
-        <button data-act="settings" aria-label="Settings">
-          <svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>Settings</span>
-        </button>
-      </nav>
     </section>
 
     <!-- INSULIN -->
@@ -197,6 +188,23 @@
         <p class="muted small">A rough estimate from your own settings and the last reading. Check it against your care team's guidance before you dose.</p>
       </div>
 
+    </section>
+
+    <!-- LOGBOOK -->
+    <section id="view-log" class="view" hidden>
+      <header class="settings-head">
+        <h2 class="page-title">Logbook</h2>
+        <button id="logClose" class="icon-btn" aria-label="Close" title="Close (Esc)">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+
+      <div class="card" id="quickCard" hidden>
+        <h3>Quick log</h3>
+        <div id="quickBtns" class="quick"></div>
+        <p id="quickNote" class="muted small"></p>
+      </div>
+
       <div class="card" id="logCard">
         <h3>Log insulin or carbs</h3>
         <form id="logForm">
@@ -204,6 +212,12 @@
             <label class="field">Insulin (units) <input id="lIns" type="text" inputmode="decimal" placeholder="0"></label>
             <label class="field">Carbs (g) <input id="lCarbs" type="text" inputmode="decimal" placeholder="0"></label>
           </div>
+          <label class="field">Insulin type
+            <select id="lType">
+              <option value="rapid">Rapid-acting (counts in IOB)</option>
+              <option value="long">Long-acting, e.g. Tresiba (not in IOB)</option>
+            </select>
+          </label>
           <label class="field">Time <input id="lTime" type="datetime-local"></label>
           <p id="logError" class="msg error" role="alert"></p>
           <button class="btn primary block" type="submit">Save</button>
@@ -212,13 +226,19 @@
 
       <div class="card">
         <h3>Log</h3>
+        <p id="lastLong" class="muted small" hidden></p>
         <div class="seg" id="logRange">
           <button data-r="day">Last 24 hours</button><button data-r="all">All history</button>
         </div>
         <form id="editForm" class="edit-box" hidden>
           <h4 id="editTitle">Edit entry</h4>
           <div>
-            <label class="field"><span id="eAmtLabel">Amount</span> <input id="eAmt" type="text" inputmode="decimal"></label>
+            <label class="field" id="eNameField" hidden>Medication <input id="eName" type="text" maxlength="40"></label>
+            <label class="field" id="eItemsField" hidden>Medications in it (comma-separated) <input id="eItems" type="text" maxlength="200"></label>
+            <label class="field" id="eAmtField"><span id="eAmtLabel">Amount</span> <input id="eAmt" type="text" inputmode="decimal"></label>
+            <label class="field" id="eTypeField" hidden>Insulin type
+              <select id="eType"><option value="rapid">Rapid-acting</option><option value="long">Long-acting</option></select>
+            </label>
             <label class="field">Time <input id="eTime" type="datetime-local"></label>
           </div>
           <p id="editError" class="msg error" role="alert"></p>
@@ -281,6 +301,10 @@
           </label>
           <label class="field">Carbs absorb over (hours) <input id="sCarbH" type="text" inputmode="decimal"></label>
         </div>
+        <label class="field">One-tap medication buttons, one per line
+          <textarea id="sMeds" rows="3" maxlength="600" placeholder="Bedtime meds: Metformin 500 mg, Atorvastatin 20 mg"></textarea>
+        </label>
+        <p class="muted small">Write a button's name, then a colon, then the medications it stands for. Each line becomes a button at the top of the Insulin page. One tap logs everything on it as taken now. Leave it empty for none.</p>
         <p id="iError" class="msg error" role="alert"></p>
         <p class="muted small">Rapid-acting insulin such as NovoLog or Humalog usually peaks at 55 to 75 minutes and lasts 4 to 6 hours.</p>
         <button id="exportBtn" class="btn block">Export insulin log (JSON)</button>
@@ -376,6 +400,27 @@
       </div>
     </section>
   </main>
+  <!-- Phone: a bar fixed to the bottom of every main screen (see the phone rules in app.css) -->
+  <nav id="tabBar" class="tabbar" aria-label="Main" hidden>
+    <button data-act="home" aria-label="Glucose">
+      <svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span>Home</span>
+    </button>
+    <button data-act="insulin" id="tbInsulin" aria-label="Insulin log and bolus" hidden>
+      <svg viewBox="0 0 24 24" width="26" height="26"><path d="M12 3c3 4.2 5.5 7 5.5 10.2a5.5 5.5 0 0 1-11 0C6.5 10 9 7.2 12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span>Bolus</span>
+    </button>
+    <button data-act="log" id="tbLog" aria-label="Logbook" hidden>
+      <svg viewBox="0 0 24 24" width="26" height="26"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4zM5 17a3 3 0 0 1 3-3h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span>Logbook</span>
+    </button>
+    <button data-act="chart" aria-label="Chart view">
+      <svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 4v16h16M7 15l3.5-4 3 2.5L19 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Chart</span>
+    </button>
+    <button data-act="big" aria-label="Big number">
+      <svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Big</span>
+    </button>
+    <button data-act="settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" width="26" height="26"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>Settings</span>
+    </button>
+  </nav>
 
   
   <!-- Big mode overlay -->

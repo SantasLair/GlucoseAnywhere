@@ -8,7 +8,7 @@ Copy these into the itch.io project editor. Nothing here is published automatica
 |---|---|
 | Title | GlucoseAnywhere |
 | Project URL | `glucoseanywhere.itch.io/glucoseanywhere` (any free URL works) |
-| Short description / tagline | A free, no-setup big-screen glucose display for any browser or Windows PC. |
+| Short description / tagline | Free blood sugar tools: a big live Dexcom display for any browser or Windows PC, plus an optional insulin log and bolus calculator in the web app. |
 | Kind of project | **Downloadable** (the web version is linked from the description) |
 | Classification | **Tools** |
 | Release status | Released |

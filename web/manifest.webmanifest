@@ -1,7 +1,7 @@
 {
   "name": "GlucoseAnywhere",
   "short_name": "GlucoseAnywhere",
-  "description": "See your Dexcom glucose reading in any browser. Everything stays on your device.",
+  "description": "Free, open-source blood sugar tools: your live Dexcom reading, an optional insulin and carb log, and a bolus calculator. Your data stays on your device.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

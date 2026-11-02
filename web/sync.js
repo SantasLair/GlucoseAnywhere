@@ -7,7 +7,7 @@
 //              and the user taps Reconnect when it runs out.
 // The merge is by entry id, so two devices add each other's entries; deletes travel as tombstones.
 import { CLIENT_IDS } from './sync-config.js';
-import { loadSync, saveSync, getTreatments, putTreatments, deleteTreatment } from './store.js';
+import { loadSync, saveSync, getTreatments, putTreatments, deleteTreatment, cleanTreatment } from './store.js';
 
 const FILE = 'glucoseanywhere-insulin-log.json';
 const KEEP_TOMBSTONES_MS = 90 * 24 * 3600e3;
@@ -155,7 +155,6 @@ async function upload(provider, token, data) {
 }
 
 // ---- merge
-const validRow = r => r && typeof r.id === 'string' && Number.isFinite(r.t) && (r.kind === 'insulin' || r.kind === 'carbs') && r.v > 0 && r.v < 1000;
 
 /**
  * Two-way sync. Returns the number of entries added on this device.
@@ -175,13 +174,14 @@ export async function syncNow() {
   const merged = new Map(local.map(r => [r.id, r]));
   const before = merged.size;
   for (const r of remote?.treatments ?? []) {
-    if (!validRow(r)) continue;
-    const mine = merged.get(r.id);
-    if (!mine || (r.u ?? 0) > (mine.u ?? 0)) merged.set(r.id, { id: r.id, t: r.t, kind: r.kind, v: r.v, ...(r.u ? { u: r.u } : {}) });
+    const c = cleanTreatment(r);
+    if (!c) continue;
+    const mine = merged.get(c.id);
+    if (!mine || (c.u ?? 0) > (mine.u ?? 0)) merged.set(c.id, c);
   }
   for (const id of tomb.keys()) if (merged.has(id)) { merged.delete(id); await deleteTreatment(id); }
   const localById = new Map(local.map(r => [r.id, r]));
-  const changed = [...merged.values()].filter(r => localById.get(r.id)?.u !== r.u || localById.get(r.id)?.v !== r.v || localById.get(r.id)?.t !== r.t);
+  const changed = [...merged.values()].filter(r => ['u', 'v', 't', 'kind', 'name'].some(k => localById.get(r.id)?.[k] !== r[k]));
   const added = changed.filter(r => !localById.has(r.id));
   if (changed.length) await putTreatments(changed);   // new entries, and edits made on another device
 

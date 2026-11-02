@@ -5,7 +5,7 @@ import { curveParams, iobAt, iobFraction, cobAt, iobSeries, activityAt, activity
 import {
   loadPrefs, savePrefs, loadCreds, saveCreds, clearCreds,
   putReadings, getReadings, pruneReadings, forgetEverything, describeStorage,
-  putTreatments, getTreatments, deleteTreatment, requestPersistence,
+  putTreatments, getTreatments, deleteTreatment, requestPersistence, cleanTreatment,
   noteVisit, feedbackDue, dismissFeedback,
 } from './store.js';
 import {
@@ -13,7 +13,7 @@ import {
   fmtDelta, glucoseClass, fmtAge, fmtClock, esc,
 } from './format.js';
 
-const VERSION = '1.2.0';
+const VERSION = '1.4.0';
 const DAY_MS = 24 * 3600e3;
 const POLL_MS = 60e3;          // check once a minute; Dexcom produces a reading every 5
 const $ = id => document.getElementById(id);
@@ -68,6 +68,7 @@ function showAuth(message = '') {
   if (!$('big').hidden) exitBig();
   setTimeout(syncWakeLock, 0);
   $('app').hidden = true;
+  document.body.classList.remove('has-nav');
   $('auth').hidden = false;
   setMsg('authError', message);
 }
@@ -123,6 +124,7 @@ async function enterApp() {
   $('app').hidden = false;
   readings = await getReadings(nowMs() - DAY_MS);
   treatments = await getTreatments(nowMs() - DAY_MS);
+  loadRecentExtras().then(() => { if (tab === 'insulin') renderInsulin(); });
   applyInsulinOptional();
   if (prefs.insulinOn) requestPersistence();
   runSync();
@@ -144,6 +146,7 @@ function applyLayout() {
   $('layoutBtn').title = chart ? 'Reading view (C)' : 'Chart view (C)';
   $('fsBtn').hidden = !(chart && fsEnabled());
   if (!$('app').hidden && tab === 'home') renderHome();
+  updateNav();
   syncWakeLock();
 }
 function setLayout(layout) {
@@ -155,6 +158,14 @@ $('layoutBtn').addEventListener('click', () => setLayout(prefs.layout === 'chart
 $('fsBtn').addEventListener('click', () => { if (fsElement()) fsExit(); else fsEnter(); });
 
 // ---------------------------------------------------------------- tabs
+/** The phone's bottom bar shows on every main page, but not in the wall-display chart view or on the sign-in page. */
+function updateNav() {
+  const show = !$('app').hidden && !(tab === 'home' && prefs.layout === 'chart');
+  $('tabBar').hidden = !show;
+  document.body.classList.toggle('has-nav', show);
+  for (const b of $('tabBar').children) b.classList.toggle('active', b.dataset.act === tab);
+}
+
 function showTab(name) {
   tab = name;
   for (const v of document.querySelectorAll('.view')) v.hidden = v.id !== `view-${name}`;
@@ -162,6 +173,8 @@ function showTab(name) {
   if (name === 'home') renderHome();
   if (name === 'settings') renderSettings();
   if (name === 'insulin') openInsulinPage();
+  if (name === 'log') openLogPage();
+  updateNav();
   syncWakeLock();
 }
 // Settings and Insulin are pages you open and close, not tabs. Opening adds a history entry, so the device's
@@ -173,6 +186,7 @@ function openPage(name) {
 }
 const openSettings = () => openPage('settings');
 const openInsulin = () => { if (prefs.insulinOn) openPage('insulin'); };
+const openLog = () => { if (prefs.insulinOn) openPage('log'); };
 function leavePage() {
   if (!creds) showAuth(); else showTab('home');
 }
@@ -185,6 +199,8 @@ $('settingsBtn').addEventListener('click', openSettings);
 $('settingsClose').addEventListener('click', closePage);
 $('insulinBtn').addEventListener('click', openInsulin);
 $('insulinClose').addEventListener('click', closePage);
+$('logBtn').addEventListener('click', openLog);
+$('logClose').addEventListener('click', closePage);
 document.addEventListener('click', e => {
   const g = e.target.closest('[data-goto]');
   if (g && g.dataset.goto === 'settings') openSettings();
@@ -256,6 +272,7 @@ function renderAll() {
   if (tab === 'home') renderHome();
   if (tab === 'settings') renderDataLine();
   if (tab === 'insulin') renderInsulin();
+  if (tab === 'log') { renderQuick(); renderRecent(); }
   if (!$('big').hidden) renderBig();
 }
 
@@ -331,15 +348,26 @@ function renderHomeBar() {
 $('homeBar').addEventListener('click', openInsulin);
 $('homeBar').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openInsulin(); } });
 
-// The bottom bar on a phone does what the icon row does on a bigger screen.
+// The bottom bar on a phone (fixed to the screen on every main page) does what the icon row does on a bigger screen.
+// Moving between pages from the bar replaces the history entry, so Back or the close button still returns to Home.
+function navTo(name) {
+  if ((name === 'insulin' || name === 'log') && !prefs.insulinOn) return;
+  if (name === 'home') { if (tab !== 'home') closePage(); return; }
+  if (tab === 'home') return openPage(name);
+  if (tab === name) return;
+  history.replaceState({ ga: name }, '');
+  showTab(name);
+}
 $('tabBar').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b) return;
   ({
-    chart: () => setLayout(prefs.layout === 'chart' ? 'standard' : 'chart'),
-    insulin: openInsulin,
+    home: () => navTo('home'),
+    insulin: () => navTo('insulin'),
+    log: () => navTo('log'),
+    chart: () => { if (tab !== 'home') closePage(); setLayout('chart'); },
     big: () => enterBig(true),
-    settings: openSettings,
+    settings: () => navTo('settings'),
   })[b.dataset.act]?.();
 });
 
@@ -485,9 +513,12 @@ for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEve
 function applyInsulinOptional() {
   $('insulinBtn').hidden = !prefs.insulinOn;
   $('tbInsulin').hidden = !prefs.insulinOn;
+  $('tbLog').hidden = !prefs.insulinOn;
+  $('logBtn').hidden = !prefs.insulinOn;
   $('insulinBody').hidden = !prefs.insulinOn;
   $('sInsulinOn').checked = !!prefs.insulinOn;
-  if (!prefs.insulinOn && tab === 'insulin') closePage();
+  if (!prefs.insulinOn && (tab === 'insulin' || tab === 'log')) closePage();
+  updateNav();
   if (!$('app').hidden && tab === 'home') renderHome();
 }
 $('sInsulinOn').addEventListener('change', e => {
@@ -539,6 +570,49 @@ function insulinBits() {
   return bits;
 }
 
+let lastBasal = null, lastMed = {};
+/** The newest long-acting dose and the last time each medication was taken, looking back a week. */
+async function loadRecentExtras() {
+  const rows = await getTreatments(nowMs() - 7 * DAY_MS);
+  lastBasal = rows.filter(r => r.kind === 'basal').at(-1) ?? null;
+  lastMed = {};
+  for (const r of rows) if (r.kind === 'med') lastMed[r.name] = Math.max(lastMed[r.name] ?? 0, r.t);
+}
+
+function renderQuick() {
+  const buttons = prefs.medButtons ?? [];
+  $('quickCard').hidden = !buttons.length;
+  const now = nowMs();
+  $('quickBtns').innerHTML = buttons.map((m, i) => {
+    const t = lastMed[m.label], done = t && now - t < 12 * 3600e3;
+    const sub = done ? `taken ${fmtClock(t)}` : m.items.join(', ');
+    return `<button class="quick-btn${done ? ' done' : ''}" data-med="${i}">${done ? '✓ ' : ''}${esc(m.label)}${sub ? `<br><span class="when">${esc(sub)}</span>` : ''}</button>`;
+  }).join('');
+}
+$('quickBtns').addEventListener('click', async e => {
+  const b = e.target.closest('[data-med]');
+  if (!b) return;
+  const m = (prefs.medButtons ?? [])[Number(b.dataset.med)];
+  if (!m) return;
+  const name = m.label, last = lastMed[name], now = nowMs();
+  if (last && now - last < 4 * 3600e3 && !confirm(`You logged ${name} at ${fmtClock(last)}. Log it again?`)) return;
+  const rows = await putTreatments([{ t: now, kind: 'med', name, items: [...m.items], v: 1 }]);
+  lastMed[name] = now;
+  treatments = [...treatments, ...rows].sort((x, y) => x.t - y.t);
+  if (logRange === 'all') allRows = await getTreatments(0);
+  renderInsulin();
+  syncSoon();
+  toast(`Logged: ${name}.`);
+});
+
+function openLogPage() {
+  setMsg('logError');
+  hideEdit();
+  resetLogTime();
+  renderQuick();
+  renderRecent();
+}
+
 function openInsulinPage() {
   wBgEdited = false;
   $('wCarbs').value = '';
@@ -588,6 +662,9 @@ function renderInsulin() {
       : '<span class="key key-act"></span>Activity (how fast it is working)') +
       ' <span class="key key-dose"></span>Dose <span class="key key-carb"></span>Carbs';
   }
+  $('lastLong').hidden = !lastBasal;
+  if (lastBasal) $('lastLong').textContent = `Last long-acting: ${fmtDose(lastBasal.v)} u at ${whenLabel(lastBasal.t)} (${fmtAge(now - lastBasal.t)}). Not counted in insulin on board.`;
+  renderQuick();
   renderWizard();
   renderRecent();
 }
@@ -637,29 +714,33 @@ $('wizLog').addEventListener('click', () => {
   const carbs = Math.max(0, parseNum($('wCarbs').value) ?? 0);
   const w = wizardNow(carbs, true);
   if (!w) return;
+  $('lType').value = 'rapid';
   $('lIns').value = w.units ? fmtDose(w.units) : '';
   $('lCarbs').value = carbs || '';
-  resetLogTime();
-  $('logCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  navTo('log');
+  $('logCard').scrollIntoView({ block: 'center' });
   $('lIns').focus();
 });
 
 $('logForm').addEventListener('submit', async e => {
   e.preventDefault();
   const ins = parseNum($('lIns').value) ?? 0, carbs = parseNum($('lCarbs').value) ?? 0;
+  const long = $('lType').value === 'long';
   const t = logTimeEdited ? new Date($('lTime').value).getTime() : nowMs();
   if (!(ins > 0) && !(carbs > 0)) return setMsg('logError', 'Enter insulin units, carbs, or both.');
-  if (ins < 0 || carbs < 0 || ins > 100 || carbs > 500) return setMsg('logError', 'Those amounts look wrong. Insulin up to 100 u, carbs up to 500 g.');
+  if (ins < 0 || carbs < 0 || ins > (long ? 300 : 100) || carbs > 500) return setMsg('logError', `Those amounts look wrong. Insulin up to ${long ? 300 : 100} u, carbs up to 500 g.`);
   if (!Number.isFinite(t) || t > nowMs() + 5 * 60e3) return setMsg('logError', 'Choose a time that is not in the future.');
   if (t < nowMs() - DAY_MS) return setMsg('logError', 'Entries older than 24 hours are not shown, so choose a more recent time.');
   setMsg('logError');
   const rows = await putTreatments([
-    ...(ins > 0 ? [{ t, kind: 'insulin', v: ins }] : []),
+    ...(ins > 0 ? [{ t, kind: long ? 'basal' : 'insulin', v: ins }] : []),
     ...(carbs > 0 ? [{ t, kind: 'carbs', v: carbs }] : []),
   ]);
   treatments = [...treatments, ...rows].sort((a, b) => a.t - b.t);
   if (logRange === 'all') allRows = await getTreatments(0);
   $('lIns').value = $('lCarbs').value = $('wCarbs').value = '';
+  $('lType').value = 'rapid';
+  await loadRecentExtras();
   wBgEdited = false;
   resetLogTime();
   renderInsulin();
@@ -679,6 +760,7 @@ const whenLabel = t => {
 async function refreshLog() {
   treatments = await getTreatments(nowMs() - DAY_MS);
   if (logRange === 'all') allRows = await getTreatments(0);
+  await loadRecentExtras();
   renderInsulin();
 }
 
@@ -688,10 +770,15 @@ function renderRecent() {
   const list = [...shownRows()].reverse();
   $('recentEmpty').hidden = list.length > 0;
   $('recentList').innerHTML = list.map(r => {
-    const ins = r.kind === 'insulin';
-    const left = ins ? r.v * iobFraction((now - r.t) / 60e3, c) : 0;
-    const when = [whenLabel(r.t), now - r.t < DAY_MS ? fmtAge(now - r.t) : '', left > 0.005 ? `${fmtU(left)} u still active` : ''].filter(Boolean).join(' · ');
-    return `<li><button class="row" data-edit="${esc(r.id)}" aria-label="Edit this entry"><b class="${ins ? 'ins' : 'car'}">${fmtDose(r.v)} ${ins ? 'u insulin' : 'g carbs'}</b><br>` +
+    const left = r.kind === 'insulin' ? r.v * iobFraction((now - r.t) / 60e3, c) : 0;
+    const when = [r.kind === 'med' ? (r.items ?? []).join(', ') : '', whenLabel(r.t), now - r.t < DAY_MS ? fmtAge(now - r.t) : '', left > 0.005 ? `${fmtU(left)} u still active` : ''].filter(Boolean).join(' · ');
+    const [cls, label] = {
+      insulin: ['ins', `${fmtDose(r.v)} u rapid-acting`],
+      basal: ['bas', `${fmtDose(r.v)} u long-acting`],
+      carbs: ['car', `${fmtDose(r.v)} g carbs`],
+      med: ['med', `${esc(r.name)} taken`],
+    }[r.kind] ?? ['', ''];
+    return `<li><button class="row" data-edit="${esc(r.id)}" aria-label="Edit this entry"><b class="${cls}">${label}</b><br>` +
       `<span class="when">${esc(when)}</span></button>` +
       `<button class="del" data-del="${esc(r.id)}" aria-label="Delete this entry" title="Delete">×</button></li>`;
   }).join('');
@@ -724,9 +811,16 @@ $('recentList').addEventListener('click', e => {
   if (!row) return;
   editing = shownRows().find(r => r.id === row.dataset.edit) ?? null;
   if (!editing) return;
-  const ins = editing.kind === 'insulin';
-  $('editTitle').textContent = ins ? 'Edit insulin entry' : 'Edit carbs entry';
-  $('eAmtLabel').textContent = ins ? 'Insulin (units)' : 'Carbs (g)';
+  const k = editing.kind;
+  $('editTitle').textContent = { insulin: 'Edit rapid-acting entry', basal: 'Edit long-acting entry', carbs: 'Edit carbs entry', med: 'Edit medication entry' }[k];
+  $('eAmtLabel').textContent = k === 'carbs' ? 'Carbs (g)' : 'Insulin (units)';
+  $('eAmtField').hidden = k === 'med';
+  $('eNameField').hidden = k !== 'med';
+  $('eItemsField').hidden = k !== 'med';
+  $('eItems').value = (editing.items ?? []).join(', ');
+  $('eTypeField').hidden = !(k === 'insulin' || k === 'basal');
+  $('eType').value = k === 'basal' ? 'long' : 'rapid';
+  $('eName').value = editing.name ?? '';
   $('eAmt').value = fmtDose(editing.v);
   $('eTime').value = toLocalInput(editing.t);
   setMsg('editError');
@@ -739,11 +833,15 @@ $('editDelete').addEventListener('click', async () => { if (editing && await del
 $('editForm').addEventListener('submit', async e => {
   e.preventDefault();
   if (!editing) return;
-  const ins = editing.kind === 'insulin';
-  const v = parseNum($('eAmt').value), t = new Date($('eTime').value).getTime();
-  if (!(v > 0) || v > (ins ? 100 : 500)) return setMsg('editError', ins ? 'Enter insulin between 0 and 100 units.' : 'Enter carbs between 0 and 500 g.');
+  const med = editing.kind === 'med', carbs = editing.kind === 'carbs';
+  const kind = med || carbs ? editing.kind : $('eType').value === 'long' ? 'basal' : 'insulin';
+  const v = med ? 1 : parseNum($('eAmt').value), t = new Date($('eTime').value).getTime();
+  const name = $('eName').value.trim().slice(0, 40);
+  if (med && !name) return setMsg('editError', 'Enter the medication name.');
+  const max = carbs ? 500 : kind === 'basal' ? 300 : 100;
+  if (!(v > 0) || v > max) return setMsg('editError', carbs ? 'Enter carbs between 0 and 500 g.' : `Enter insulin between 0 and ${max} units.`);
   if (!Number.isFinite(t) || t > nowMs() + 5 * 60e3) return setMsg('editError', 'Choose a time that is not in the future.');
-  await putTreatments([{ ...editing, t, v, u: nowMs() }]);   // same id replaces it; u says when it was last edited
+  await putTreatments([{ ...editing, kind, t, v, ...(med ? { name, items: parseItems($('eItems').value) } : {}), u: nowMs() }]);   // same id replaces it; u says when it was last edited
   hideEdit();
   await refreshLog();
   syncSoon();
@@ -825,8 +923,18 @@ const insulinFields = [
   numField('sCarbH', 'carbHours', { min: 1, max: 8 }),
 ];
 $('sStep').addEventListener('change', e => { prefs.step = Number(e.target.value); savePrefs(prefs); });
+const parseItems = text => text.split(',').map(i => i.trim().slice(0, 40)).filter(Boolean).slice(0, 12);
+/** "Bedtime meds: Metformin 500 mg, Atorvastatin 20 mg" per line -> [{ label, items }] */
+const parseMedButtons = text => text.split('\n').map(line => {
+  const i = line.indexOf(':');
+  const label = (i < 0 ? line : line.slice(0, i)).trim().slice(0, 30);
+  return label ? { label, items: i < 0 ? [] : parseItems(line.slice(i + 1)) } : null;
+}).filter(Boolean).slice(0, 6);
+const formatMedButtons = list => list.map(m => m.items.length ? `${m.label}: ${m.items.join(', ')}` : m.label).join('\n');
+$('sMeds').addEventListener('input', e => { prefs.medButtons = parseMedButtons(e.target.value); savePrefs(prefs); });
 function renderInsulinSettings() {
   for (const f of insulinFields) f();
+  $('sMeds').value = formatMedButtons(prefs.medButtons ?? []);
   $('sStep').value = String(prefs.step);
   renderSyncLine();
   $('sIsfLabel').textContent = `Correction (${unitsLabel(prefs.useMmol)} per unit)`;
@@ -854,9 +962,7 @@ $('importFile').addEventListener('change', async e => {
   if (!file) return;
   try {
     const data = JSON.parse(await file.text());
-    const rows = (data.treatments ?? [])
-      .filter(r => r && typeof r.id === 'string' && Number.isFinite(r.t) && (r.kind === 'insulin' || r.kind === 'carbs') && r.v > 0 && r.v < 1000)
-      .map(({ id, t, kind, v, u }) => ({ id, t, kind, v, ...(u ? { u } : {}) }));
+    const rows = (data.treatments ?? []).map(cleanTreatment).filter(Boolean);
     if (!rows.length) return toast('No log entries found in that file.', true);
     await putTreatments(rows);   // an id already here is replaced, so importing twice adds nothing
     treatments = await getTreatments(nowMs() - DAY_MS);
@@ -982,6 +1088,8 @@ document.addEventListener('keydown', e => {
     openSettings();
   } else if (key === 'i' && !bigOpen) {
     openInsulin();
+  } else if (key === 'l' && !bigOpen) {
+    openLog();
   } else if (key === 'c' && !bigOpen) {
     setLayout(prefs.layout === 'chart' ? 'standard' : 'chart');
   } else if (key === 'b') {
