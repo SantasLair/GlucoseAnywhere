@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>GlucoseAnywhere: big-screen glucose display for any device</title>
-<meta name="description" content="A free, no-setup, always-on glucose display for Dexcom Share. Works in any browser, in portrait or landscape. Your sign-in and readings stay on your device. Open source.">
+<meta name="description" content="A free, no-setup, always-on glucose display for Dexcom Share. Works in any browser, in portrait or landscape. Your sign-in and readings stay on your device and go only to Dexcom. Open source.">
 <link rel="canonical" href="https://glucoseanywhere.com/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="GlucoseAnywhere">
 <meta property="og:title" content="GlucoseAnywhere: big-screen glucose display for any device">
-<meta property="og:description" content="Turn any tablet, phone or PC into an always-on glucose display. Free, open source, and your data never leaves your device.">
+<meta property="og:description" content="Turn any tablet, phone or PC into an always-on glucose display. Free, open source, and you stay in control of your data.">
 <meta property="og:url" content="https://glucoseanywhere.com/">
 <meta property="og:image" content="https://glucoseanywhere.com/icons/icon-512.png">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="GlucoseAnywhere: big-screen glucose display for any device">
-<meta name="twitter:description" content="Turn any tablet, phone or PC into an always-on glucose display. Free, open source, and your data never leaves your device.">
+<meta name="twitter:description" content="Turn any tablet, phone or PC into an always-on glucose display. Free, open source, and you stay in control of your data.">
 <meta name="theme-color" content="#16181D">
 <meta name="color-scheme" content="dark light">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -51,7 +51,7 @@
     <label class="check"><input id="aRemember" type="checkbox" checked><span>Remember me on this device</span></label>
     <p id="authError" class="msg error" role="alert"></p>
     <button id="authBtn" class="btn primary block" type="submit">Sign in</button>
-    <p class="small muted legal">Your sign-in is stored only in this browser and sent only to Dexcom. Not affiliated with Dexcom. Not a medical device. See <a href="#" data-verify>how to verify this</a> or read the <a href="https://github.com/SantasLair/glucoseanywhere" target="_blank" rel="noopener noreferrer">source code</a>.</p>
+    <p class="small muted legal">Your sign-in is stored only in this browser and sent only to Dexcom. Optional extras are off until you turn them on. Not affiliated with Dexcom. Not a medical device. See <a href="#" data-verify>how to verify this</a> or read the <a href="https://github.com/SantasLair/glucoseanywhere" target="_blank" rel="noopener noreferrer">source code</a>.</p>
   </form>
 
   <div class="landing">
@@ -75,10 +75,10 @@
     <p>The Dexcom account of the <b>person wearing the sensor</b>, with Share turned on and at least one follower in the Dexcom app. A follower's login won't work.</p>
 
     <h3>Your privacy</h3>
-    <p>Your sign-in and readings are stored on your own device and sent only to Dexcom, to sign in and fetch readings. GlucoseAnywhere has no accounts and adds no ads, analytics or tracking to the app. Like any website, our host (Cloudflare) can see that a page was requested, including your IP address and browser, and gives us simple traffic counts. You don't have to take our word for it: <a href="#" data-verify>here's how to check</a>, and the <a href="https://github.com/SantasLair/GlucoseAnywhere" target="_blank" rel="noopener noreferrer">source code</a> is public.</p>
+    <p>Your sign-in and readings are stored on your own device and sent only to Dexcom, to sign in and fetch readings. If you turn on the optional insulin log, it is stored on your device too, and you can choose to link your own Google Drive or OneDrive account to keep a copy there. You sign in to that account yourself, only the insulin log is sent (never your Dexcom sign-in or readings), it goes straight from your device to your drive and not through us, and you can disconnect at any time. GlucoseAnywhere has no accounts and adds no ads, analytics or tracking to the app. Like any website, our host (Cloudflare) can see that a page was requested, including your IP address and browser, and gives us simple traffic counts. You don't have to take our word for it: <a href="#" data-verify>here's how to check</a>, and the <a href="https://github.com/SantasLair/GlucoseAnywhere" target="_blank" rel="noopener noreferrer">source code</a> is public.</p>
 
     <h3>Important</h3>
-    <p><b>Not a medical device.</b> Don't use it to make treatment decisions or in place of the Dexcom app's alarms. It has no alerts. GlucoseAnywhere is not affiliated with or endorsed by Dexcom, and it uses Dexcom's unofficial Share service, which can change or stop working at any time.</p>
+    <p><b>Not a medical device.</b> Don't use it in place of the Dexcom app's alarms. It has no alerts. The optional insulin calculator is only a rough estimate from numbers you enter yourself, so check every dose against your care team's guidance. GlucoseAnywhere is not affiliated with or endorsed by Dexcom, and it uses Dexcom's unofficial Share service, which can change or stop working at any time.</p>
 
     <h3>Questions or ideas?</h3>
     <p>Email <a href="mailto:feedback@glucoseanywhere.com?subject=GlucoseAnywhere%20feedback">feedback@glucoseanywhere.com</a>. It's read by the person who builds this app.</p>
@@ -88,7 +88,7 @@
 </section>
 
 <noscript>
-  <p class="nojs">GlucoseAnywhere is a free, open-source glucose display for Dexcom Share. It needs JavaScript to run in your browser. Nothing is sent to us: your sign-in and readings stay on your device.</p>
+  <p class="nojs">GlucoseAnywhere is a free, open-source glucose display for Dexcom Share. It needs JavaScript to run in your browser. Nothing is sent to us: your sign-in and readings stay on your device and go only to Dexcom.</p>
 </noscript>
 
 <div id="app" hidden>
@@ -100,6 +100,9 @@
         <div class="card-tools">
           <button id="layoutBtn" class="icon-btn" aria-label="Switch to chart view" title="Chart view (C)">
             <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 4v16h16M7 15l3.5-4 3 2.5L19 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button id="insulinBtn" class="icon-btn" aria-label="Insulin log and wizard" title="Insulin (I)">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 3c3 4.2 5.5 7 5.5 10.2a5.5 5.5 0 0 1-11 0C6.5 10 9 7.2 12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
           </button>
           <button id="fsBtn" class="icon-btn" aria-label="Fullscreen" title="Fullscreen (F)" hidden>
             <svg viewBox="0 0 24 24" width="22" height="22"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -125,6 +128,79 @@
         </div>
         <div id="chart" class="chart"></div>
       </div>
+      <div id="homeBar" class="home-bar" hidden>
+        <div class="hb-stat"><b id="hbIob">0.00</b><span>u on board</span></div>
+        <div class="hb-stat" id="hbSuggestBox" hidden><b id="hbSuggest">0</b><span>u suggested</span></div>
+        <button id="hbBolus" class="btn primary">Bolus</button>
+      </div>
+    </section>
+
+    <!-- INSULIN -->
+    <section id="view-insulin" class="view" hidden>
+      <header class="settings-head">
+        <h2 class="page-title">Insulin</h2>
+        <button id="insulinClose" class="icon-btn" aria-label="Close" title="Close (Esc)">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+
+      <div class="card">
+        <div class="iob-grid">
+          <div><div id="iobVal" class="iob-val">0.00</div><div class="muted small">units on board</div></div>
+          <div><div id="cobVal" class="iob-val sm">0</div><div class="muted small">g carbs on board</div></div>
+        </div>
+        <p id="actNow" class="muted small act-now"></p>
+        <label class="check"><input id="iobGraphOn" type="checkbox"><span>Show graph</span></label>
+        <div id="iobGraphBox" hidden>
+          <div class="seg" id="iobKind">
+            <button data-k="iob">Insulin on board</button><button data-k="activity">Activity (peak effect)</button>
+          </div>
+          <div id="iobChart" class="chart iob-chart"></div>
+          <p id="iobKey" class="muted small iob-key"></p>
+        </div>
+      </div>
+
+      <div class="card wizard">
+        <h3>Bolus</h3>
+        <p id="wizSetup" class="muted small" hidden>Enter your carb ratio, correction factor and target in <button class="link" data-goto="settings">Settings</button> to see a suggested dose. Until then only the insulin on board is tracked.</p>
+        <div id="wizBody" hidden>
+          <div class="wiz-tiles">
+            <label class="tile">
+              <span class="tile-k">Carbs</span>
+              <span class="tile-v"><input id="wCarbs" type="text" inputmode="decimal" placeholder="0" aria-label="Carbs in grams"><i>g</i></span>
+            </label>
+            <label class="tile">
+              <span class="tile-k">BG <em id="wBgSrc"></em></span>
+              <span class="tile-v"><input id="wBg" type="text" inputmode="decimal" placeholder="--" aria-label="Blood glucose"><i id="wBgUnit">mg/dL</i></span>
+            </label>
+          </div>
+          <button id="wBgReset" class="link small" hidden>Use the sensor reading</button>
+          <div class="wiz-units"><span>Units</span><b id="wizUnits">0</b><i>u</i></div>
+          <dl id="wizRows" class="wiz"></dl>
+          <p id="wizWarn" class="msg warn"></p>
+          <button id="wizLog" class="btn primary block">Next: log this dose</button>
+        </div>
+        <p class="muted small">A rough estimate from your own settings and the last reading. Check it against your care team's guidance before you dose.</p>
+      </div>
+
+      <div class="card" id="logCard">
+        <h3>Log insulin or carbs</h3>
+        <form id="logForm">
+          <div class="two">
+            <label class="field">Insulin (units) <input id="lIns" type="text" inputmode="decimal" placeholder="0"></label>
+            <label class="field">Carbs (g) <input id="lCarbs" type="text" inputmode="decimal" placeholder="0"></label>
+          </div>
+          <label class="field">Time <input id="lTime" type="datetime-local"></label>
+          <p id="logError" class="msg error" role="alert"></p>
+          <button class="btn primary block" type="submit">Save</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3>Last 24 hours</h3>
+        <ul id="recentList" class="recent"></ul>
+        <p id="recentEmpty" class="muted small">Nothing logged yet.</p>
+      </div>
     </section>
 
     <!-- SETTINGS -->
@@ -149,6 +225,46 @@
           <label class="field">High above <input id="sHigh" type="text" inputmode="decimal"></label>
         </div>
         <p id="sError" class="msg error" role="alert"></p>
+      </div>
+
+      <div class="card">
+        <h3>Insulin log and bolus wizard</h3>
+        <p class="muted small">Optional. Leave it off and the app is just the glucose display.</p>
+        <label class="check"><input id="sInsulinOn" type="checkbox"><span>Turn on insulin and carb logging, insulin on board, and the bolus wizard</span></label>
+        <div id="insulinBody" hidden>
+        <p class="muted small">Your own numbers, from your care team. The suggested dose stays off until the first three are filled in.</p>
+        <div class="two">
+          <label class="field">Carb ratio (g per unit) <input id="sIcr" type="text" inputmode="decimal"></label>
+          <label class="field"><span id="sIsfLabel">Correction (mg/dL per unit)</span> <input id="sIsf" type="text" inputmode="decimal"></label>
+        </div>
+        <div class="two">
+          <label class="field">Target glucose <input id="sTarget" type="text" inputmode="decimal"></label>
+          <label class="field">Max bolus (units) <input id="sMax" type="text" inputmode="decimal"></label>
+        </div>
+        <div class="two">
+          <label class="field">Insulin lasts (hours) <input id="sDia" type="text" inputmode="decimal"></label>
+          <label class="field">Peaks at (minutes) <input id="sPeak" type="text" inputmode="decimal"></label>
+        </div>
+        <div class="two">
+          <label class="field">Dose step
+            <select id="sStep"><option value="0.05">0.05</option><option value="0.1">0.1</option><option value="0.5">0.5</option><option value="1">1</option></select>
+          </label>
+          <label class="field">Carbs absorb over (hours) <input id="sCarbH" type="text" inputmode="decimal"></label>
+        </div>
+        <p id="iError" class="msg error" role="alert"></p>
+        <p class="muted small">Rapid-acting insulin such as NovoLog or Humalog usually peaks at 55 to 75 minutes and lasts 4 to 6 hours.</p>
+        <button id="exportBtn" class="btn block">Export insulin log (JSON)</button>
+        <button id="importBtn" class="btn block">Import insulin log…</button>
+        <input id="importFile" type="file" accept="application/json,.json" hidden>
+        <h4 class="about-h">Sync to your own cloud drive (optional)</h4>
+        <p class="muted small">Keeps the insulin log, and only that, in a private app folder in <b>your own</b> OneDrive or Google Drive, so your phone and other devices share it. You sign in to your own account; nothing goes through us. Off until you connect.</p>
+        <p id="syncLine" class="small"></p>
+        <button id="syncMs" class="btn block" hidden>Connect OneDrive</button>
+        <button id="syncGoogle" class="btn block" hidden>Connect Google Drive</button>
+        <button id="syncNow" class="btn block" hidden>Sync now</button>
+        <button id="syncOff" class="btn danger block" hidden>Disconnect</button>
+        <p class="muted small">Export saves a file you can put in OneDrive or Google Drive from the phone's share sheet. Import merges a file back in, so two devices can share a log.</p>
+        </div>
       </div>
 
       <div class="card">
@@ -198,24 +314,24 @@
       <div class="card" id="about">
         <h3>About</h3>
         <p class="small about">
-          <b>Not a medical device.</b> GlucoseAnywhere is not affiliated with or endorsed by Dexcom. Don't use it to make treatment decisions or in place of the Dexcom app's alarms. It uses Dexcom's unofficial Share service, which can change or stop working at any time.
+          <b>Not a medical device.</b> GlucoseAnywhere is not affiliated with or endorsed by Dexcom. The glucose display is not for treatment decisions or in place of the Dexcom app's alarms. The optional insulin calculator is only a rough estimate from the numbers you enter: confirm every dose with your care team's guidance. It uses Dexcom's unofficial Share service, which can change or stop working at any time.
         </p>
         <p class="small about">
-          <b>Privacy.</b> Everything stays in this browser. Your sign-in and readings are stored on this device and sent only to Dexcom, to sign in and fetch readings. GlucoseAnywhere has no accounts and adds no analytics or tracking to the app. Like any website, our host (Cloudflare) can see that this site's pages and files were requested, including your IP address and browser, and gives us simple traffic counts.
+          <b>Privacy.</b> Your data stays under your control. Your sign-in and readings are stored on this device and sent only to Dexcom, to sign in and fetch readings. The optional insulin log is stored on this device too. If you choose to link your own Google Drive or OneDrive, you sign in to that account yourself and only the insulin log is sent there, straight from this device to your drive (never through us), until you disconnect. GlucoseAnywhere has no accounts and adds no analytics or tracking to the app. Like any website, our host (Cloudflare) can see that this site's pages and files were requested, including your IP address and browser, and gives us simple traffic counts.
         </p>
         <p class="small about">
           <b>Your password is saved on this device</b> so the app can sign in again when Dexcom's session expires. Anyone who can use this browser profile can read it. On a shared computer, turn off "Remember me" or use "Forget everything" when you're done.
         </p>
         <p class="small about">
-          <b>Not synced.</b> Each browser or device keeps its own sign-in and history. Clearing site data deletes it.
+          <b>Not synced.</b> Each browser or device keeps its own sign-in, history and insulin log (you can export and import the log). Clearing site data deletes it.
         </p>
         <h4 class="about-h">Verify it yourself</h4>
         <ol class="small about steps">
           <li>Open your browser's developer tools (F12, or Cmd+Option+I on a Mac) and choose the <b>Network</b> tab.</li>
-          <li>Sign in. You should see requests only to <b>share2.dexcom.com</b>, <b>shareous1.dexcom.com</b> or <b>share.dexcom.jp</b>, plus this site's own files. Nothing else.</li>
+          <li>Sign in. You should see requests only to <b>share2.dexcom.com</b>, <b>shareous1.dexcom.com</b> or <b>share.dexcom.jp</b>, plus this site's own files. Nothing else, unless you have linked your own Google Drive or OneDrive, which adds <b>googleapis.com</b>, <b>graph.microsoft.com</b> or <b>login.microsoftonline.com</b>.</li>
           <li>Look at this page's <b>Content-Security-Policy</b> response header. It tells your browser to block every connection except those Dexcom servers.</li>
           <li>Turn on airplane mode and reopen the app. Your saved readings still appear, because they're stored on this device.</li>
-          <li>Read the code. Only <b>dexcom.js</b> contacts Dexcom, and only <b>store.js</b> saves your data. The small <b>sw.js</b> file keeps an offline copy of this app's own files and nothing else.</li>
+          <li>Read the code. Only <b>dexcom.js</b> contacts Dexcom, only the optional <b>sync.js</b> contacts Google or Microsoft, and only <b>store.js</b> saves your data. The small <b>sw.js</b> file keeps an offline copy of this app's own files and nothing else.</li>
         </ol>
         <h4 class="about-h">What's stored on this device</h4>
         <button id="storedBtn" class="btn block">Show what's stored</button>

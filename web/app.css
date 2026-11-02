@@ -9,6 +9,7 @@
   --banner-bg: #3a2f17; --banner-bd: #6b5420; --banner-fg: #F2B33D;
   --err-bg: #3a1d1d; --err-bd: #6b2a2a; --err-fg: #f3a3a1;
   color-scheme: dark;
+  --shadow: none; --iob: #7C5CFF; --carb: #F2A33D; --act: #2DC8B4;
   --tabbar-h: 0px;
   --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px); --sar: env(safe-area-inset-right, 0px);
@@ -16,28 +17,32 @@
 /* Theme: dark is the default; "light" is forced with data-theme, and with no data-theme
    (Auto) the device's own light/dark setting decides. theme.js sets data-theme before first paint. */
 :root[data-theme="light"] {
-  --bg: #F4F5F7; --surface: #FFFFFF; --raised: #EEF0F3;
-  --text: #1B1E24; --muted: #5F6672; --line: #D9DCE2;
-  --ok: #17935A; --high: #B86E00; --low: #D6372F; --stale: #8A8F99;
-  --blue: #1F6FD6; --accent: #1F6FD6;
-  --soft: #3C424D; --on-accent: #FFFFFF; --grid: #E3E5EA; --page-bg: #E9EBEF;
-  --big-bg: #FFFFFF; --overlay-btn: rgba(0,0,0,.08);
-  --toast-err: #F9D6D3;
-  --banner-bg: #FFF4DB; --banner-bd: #E8C777; --banner-fg: #8A5200;
-  --err-bg: #FDE3E1; --err-bd: #F0B3AE; --err-fg: #A32B24;
+  --iob: #6A48E8; --carb: #D9820F; --act: #0E9384;
+  --bg: #EEF3F9; --surface: #FFFFFF; --raised: #E9EFF7;
+  --text: #172033; --muted: #556176; --line: #D5DEEA;
+  --ok: #0E8A5F; --high: #B35C00; --low: #D12F3A; --stale: #8C97A8;
+  --blue: #2563EB; --accent: #2563EB;
+  --soft: #36425A; --on-accent: #FFFFFF; --grid: #E1E8F1; --page-bg: #E2E9F3;
+  --big-bg: #F7FAFD; --overlay-btn: rgba(23,32,51,.09);
+  --toast-err: #FBDADC;
+  --banner-bg: #FFF3D6; --banner-bd: #EBC873; --banner-fg: #7C4A00;
+  --err-bg: #FDE4E6; --err-bd: #F1B4B9; --err-fg: #9E2530;
+  --shadow: 0 1px 2px rgba(23,32,51,.06), 0 6px 18px rgba(37,60,100,.07);
   color-scheme: light;
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
-    --bg: #F4F5F7; --surface: #FFFFFF; --raised: #EEF0F3;
-    --text: #1B1E24; --muted: #5F6672; --line: #D9DCE2;
-    --ok: #17935A; --high: #B86E00; --low: #D6372F; --stale: #8A8F99;
-    --blue: #1F6FD6; --accent: #1F6FD6;
-    --soft: #3C424D; --on-accent: #FFFFFF; --grid: #E3E5EA; --page-bg: #E9EBEF;
-    --big-bg: #FFFFFF; --overlay-btn: rgba(0,0,0,.08);
-    --toast-err: #F9D6D3;
-    --banner-bg: #FFF4DB; --banner-bd: #E8C777; --banner-fg: #8A5200;
-    --err-bg: #FDE3E1; --err-bd: #F0B3AE; --err-fg: #A32B24;
+    --iob: #6A48E8; --carb: #D9820F; --act: #0E9384;
+    --bg: #EEF3F9; --surface: #FFFFFF; --raised: #E9EFF7;
+    --text: #172033; --muted: #556176; --line: #D5DEEA;
+    --ok: #0E8A5F; --high: #B35C00; --low: #D12F3A; --stale: #8C97A8;
+    --blue: #2563EB; --accent: #2563EB;
+    --soft: #36425A; --on-accent: #FFFFFF; --grid: #E1E8F1; --page-bg: #E2E9F3;
+    --big-bg: #F7FAFD; --overlay-btn: rgba(23,32,51,.09);
+    --toast-err: #FBDADC;
+    --banner-bg: #FFF3D6; --banner-bd: #EBC873; --banner-fg: #7C4A00;
+    --err-bg: #FDE4E6; --err-bd: #F1B4B9; --err-fg: #9E2530;
+    --shadow: 0 1px 2px rgba(23,32,51,.06), 0 6px 18px rgba(37,60,100,.07);
     color-scheme: light;
   }
 }
@@ -64,7 +69,7 @@ a { color: var(--accent); }
 .page-title { font-size: 26px; margin: 4px 0 14px; }
 
 /* Cards, fields, buttons */
-.card { background: var(--surface); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+.card { background: var(--surface); border-radius: 16px; padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
 .card h3 { font-size: 17px; margin-bottom: 8px; }
 .card > p + .field, .card > h3 + .field { margin-top: 10px; }
 .field { display: block; font-size: 13px; color: var(--muted); margin-top: 12px; }
@@ -262,7 +267,7 @@ input:focus, select:focus { border-color: var(--accent); }
 #view-home.chart-focus .glucose-card {
   grid-column: 1; grid-row: 2; margin: 0; min-height: 0; container-type: normal;
   display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 16px;
-  text-align: left; padding: 10px 240px 10px 16px;
+  text-align: left; padding: 10px 284px 10px 16px;
 }
 #view-home.chart-focus .chart-card { grid-column: 1; grid-row: 3; margin: 0; min-height: 0; display: flex; flex-direction: column; }
 #view-home.chart-focus .chart { position: relative; flex: 1; min-height: 120px; }
@@ -274,7 +279,7 @@ input:focus, select:focus { border-color: var(--accent); }
 #view-home.chart-focus .gmeta { margin: 0; font-size: 15px; min-width: 0; overflow-wrap: anywhere; }
 #view-home.chart-focus .card-tools { top: 50%; transform: translateY(-50%); }
 @media (max-width: 600px) {
-  #view-home.chart-focus .glucose-card { padding-right: 150px; gap: 10px; }
+  #view-home.chart-focus .glucose-card { padding-right: 188px; gap: 10px; }
   #view-home.chart-focus .gmeta { font-size: 13px; }
 }
 
@@ -301,4 +306,94 @@ input:focus, select:focus { border-color: var(--accent); }
 }
 @media (min-width: 900px) and (min-height: 600px) {
   .settings-head { column-span: all; }
+}
+
+/* Insulin page */
+.iob-grid { display: flex; gap: 28px; align-items: flex-end; margin-bottom: 8px; }
+.iob-val { font-size: 52px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: var(--iob); }
+.iob-val.sm { font-size: 32px; color: var(--carb); }
+.iob-chart svg { display: block; width: 100%; }
+.iob-key { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.key { display: inline-block; width: 12px; height: 12px; border-radius: 6px; margin-left: 8px; }
+.key:first-child { margin-left: 0; }
+.key-iob { background: var(--iob); } .key-dose { background: var(--accent); } .key-carb { background: var(--carb); }
+.c-iob-line { stroke: var(--iob); } .c-iob-fill { fill: var(--iob); }
+.c-dose { stroke: var(--accent); } .c-carb { fill: var(--carb); } .c-now { stroke: var(--muted); }
+.wiz { margin: 12px 0 0; }
+.wiz > div { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+.wiz dt { color: var(--muted); } .wiz dd { margin: 0; font-variant-numeric: tabular-nums; }
+.wiz-total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 12px; }
+.wiz-total span { color: var(--muted); }
+.wiz-total b { font-size: 40px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.msg.warn { color: var(--high); margin-top: 8px; }
+.msg.warn:empty { display: none; }
+.link { color: var(--accent); font-weight: 600; text-decoration: underline; }
+.recent { list-style: none; margin: 8px 0 0; padding: 0; }
+.recent li { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; border-bottom: 1px solid var(--line); }
+.recent li:last-child { border-bottom: 0; }
+.recent .when { color: var(--muted); font-size: 13px; }
+.recent .what b { font-variant-numeric: tabular-nums; }
+.recent .what .ins { color: var(--accent); } .recent .what .car { color: var(--carb); }
+.recent .del { color: var(--muted); width: 44px; height: 44px; font-size: 22px; }
+input[type=datetime-local] { min-width: 0; }
+@media (min-width: 900px) and (min-height: 600px) {
+  #view-insulin { column-width: 380px; column-gap: 20px; max-width: 1240px; margin: 0 auto; }
+  #view-insulin .card { break-inside: avoid; }
+}
+
+/* Phone portrait: the buttons get their own row above the reading instead of sitting on top of it. */
+@media (max-width: 600px) and (orientation: portrait) {
+  #view-home:not(.chart-focus) .glucose-card { padding-top: 52px; }
+}
+
+/* Bolus screen: big Carbs and BG tiles, a large Units result, then the breakdown. */
+.wiz-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.tile { display: block; background: var(--raised); border-radius: 14px; padding: 10px 14px 8px; }
+.tile:focus-within { outline: 2px solid var(--accent); }
+.tile-k { display: block; font-size: 13px; font-weight: 600; color: var(--muted); }
+.tile-k em { font-style: normal; font-weight: 400; font-size: 11px; }
+.tile-v { display: flex; align-items: baseline; gap: 6px; }
+.tile-v input { background: none; border: 0; border-radius: 0; padding: 0; min-height: 52px; margin: 0; font-size: 38px; font-weight: 700; width: 100%; min-width: 0; font-variant-numeric: tabular-nums; }
+.tile-v input:focus { border: 0; }
+.tile-v i { font-style: normal; color: var(--muted); font-size: 14px; flex: none; }
+#wBgReset { display: block; margin-top: 8px; }
+.wiz-units { display: flex; align-items: baseline; gap: 8px; margin: 16px 0 4px; padding: 14px 16px; border-radius: 14px; background: var(--raised); }
+.wiz-units span { color: var(--muted); font-weight: 600; flex: 1; }
+.wiz-units b { font-size: 52px; line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums; }
+.wiz-units i { font-style: normal; font-size: 20px; color: var(--accent); }
+.wiz .total { font-weight: 700; border-bottom: 0; }
+.wiz .total dt { color: var(--text); }
+
+.c-act-line { stroke: var(--act); } .c-act-fill { fill: var(--act); }
+.key-act { background: var(--act); }
+#iobKind { margin-top: 10px; }
+#iobKind button { font-size: 14px; }
+.act-now { margin-top: 6px; }
+
+/* Phone held upright: the home screen is one card that fills the screen, like a pump or CGM app.
+   Reading on top, graph in the middle (it takes all spare height), insulin figures and a Bolus button at the bottom. */
+.home-bar { display: none; }
+@media (max-width: 600px) and (orientation: portrait) {
+  #app { max-width: none; }
+  #view-home:not(.chart-focus) {
+    display: flex; flex-direction: column; box-sizing: border-box;
+    height: 100vh; height: 100dvh; background: var(--surface);
+    padding: calc(var(--sat) + 6px) calc(var(--sar) + 10px) calc(var(--sab) + 10px) calc(var(--sal) + 10px);
+  }
+  #view-home:not(.chart-focus) .banner { flex: none; margin: 4px 0 6px; }
+  #view-home:not(.chart-focus) .card { background: none; box-shadow: none; border-radius: 0; margin: 0; }
+  #view-home:not(.chart-focus) .glucose-card { flex: none; padding: 52px 0 6px; }
+  #view-home:not(.chart-focus) .chart-card { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0; }
+  #view-home:not(.chart-focus) .chart { position: relative; flex: 1; min-height: 160px; }
+  #view-home:not(.chart-focus) .chart svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #view-home:not(.chart-focus) .seg { margin-top: 6px; }
+  #view-home:not(.chart-focus) .home-bar {
+    flex: none; display: flex; align-items: center; gap: 16px; margin-top: 8px; padding: 10px 4px 0; border-top: 1px solid var(--line);
+  }
+  #view-home:not(.chart-focus) .home-bar[hidden] { display: none; }
+  .hb-stat { display: flex; flex-direction: column; line-height: 1.1; }
+  .hb-stat b { font-size: 28px; font-variant-numeric: tabular-nums; color: var(--iob); }
+  #hbSuggestBox b { color: var(--accent); }
+  .hb-stat span { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .home-bar .btn { margin-left: auto; min-width: 120px; min-height: 52px; font-size: 17px; }
 }

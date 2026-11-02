@@ -6,7 +6,9 @@ import { fmtGlucoseNum } from './format.js';
 // Desktop and tablet-landscape windows: the chart fills the space the layout gives it.
 const FILL = window.matchMedia('(min-width: 900px) and (min-height: 600px)');
 // The chart view also fills its card, on any screen size.
-export const chartFills = () => FILL.matches || !!document.querySelector('.chart-focus');
+// A phone held upright: the chart fills the one-card home screen.
+const PHONE = window.matchMedia('(max-width: 600px) and (orientation: portrait)');
+export const chartFills = () => FILL.matches || PHONE.matches || !!document.querySelector('.chart-focus');
 
 /** o: { readings, hours, now, low, high, mmol } */
 export function drawChart(el, o) {
@@ -56,5 +58,53 @@ export function drawChart(el, o) {
     s += `<circle class="${c}" cx="${x(r.t).toFixed(1)}" cy="${y(r.v).toFixed(1)}" r="${rad.toFixed(1)}"/>`;
   }
 
+  el.innerHTML = s + '</svg>';
+}
+
+/** Insulin-on-board or insulin-activity curve with the doses and carbs that shaped it.
+ *  o: { kind: 'iob' | 'activity', series: [{ t, v }], insulin, carbs, start, end, now } */
+export function drawIobChart(el, o) {
+  const W = Math.max(el.clientWidth, 280), H = 190;
+  const m = { l: 6, r: 48, t: 12, b: 24 };
+  const x = t => m.l + (t - o.start) / (o.end - o.start) * (W - m.l - m.r);
+  const act = o.kind === 'activity';
+  let top = 0;
+  for (const p of o.series) if (p.v > top) top = p.v;
+  top = act ? Math.max(0.5, Math.ceil(top * 4) / 4) : Math.max(1, Math.ceil(top));
+  const plotR = W - m.r, plotB = H - m.b;
+  const y = v => m.t + (1 - v / top) * (plotB - m.t);
+
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${act ? 'Insulin activity curve' : 'Insulin on board curve'}">`;
+
+  const d0 = new Date(o.start); d0.setMinutes(0, 0, 0);
+  for (let t = d0.getTime(); t <= o.end; t += 3600e3) {
+    if (t < o.start || new Date(t).getHours() % 2) continue;
+    const px = x(t).toFixed(1);
+    if (px < m.l + 14) continue;
+    s += `<line class="c-grid" x1="${px}" y1="${m.t}" x2="${px}" y2="${plotB}" stroke-width="1"/>`;
+    s += `<text class="c-lbl" x="${px}" y="${H - 7}" text-anchor="middle" font-size="11">${new Date(t).toLocaleTimeString([], { hour: 'numeric' })}</text>`;
+  }
+  s += `<line class="c-grid" x1="${m.l}" y1="${plotB}" x2="${plotR}" y2="${plotB}" stroke-width="1"/>`;
+  s += `<text class="c-lbl" x="${plotR + 4}" y="${y(0) + 4}" font-size="11">0</text>`;
+  s += `<text class="c-lbl" x="${plotR + 4}" y="${y(top) + 4}" font-size="11">${act ? top.toFixed(2).replace(/0$/, '') + ' u/h' : top + ' u'}</text>`;
+
+  const pts = o.series.map(p => `${x(p.t).toFixed(1)},${y(p.v).toFixed(1)}`);
+  if (pts.length > 1) {
+    s += `<polygon class="${act ? 'c-act-fill' : 'c-iob-fill'}" points="${x(o.series[0].t).toFixed(1)},${plotB} ${pts.join(' ')} ${x(o.series.at(-1).t).toFixed(1)},${plotB}" opacity="0.18"/>`;
+    s += `<polyline class="${act ? 'c-act-line' : 'c-iob-line'}" fill="none" stroke-width="2.5" stroke-linejoin="round" points="${pts.join(' ')}"/>`;
+  }
+
+  // Doses as ticks on the baseline (height = size of dose), carbs as dots just above it
+  for (const d of o.insulin) {
+    if (d.t < o.start || d.t > o.end) continue;
+    s += `<line class="c-dose" x1="${x(d.t).toFixed(1)}" y1="${plotB}" x2="${x(d.t).toFixed(1)}" y2="${(plotB - Math.min(plotB - m.t, 16 + 8 * d.v)).toFixed(1)}" stroke-width="3" stroke-linecap="round"/>`;
+  }
+  for (const c of o.carbs) {
+    if (c.t < o.start || c.t > o.end) continue;
+    s += `<circle class="c-carb" cx="${x(c.t).toFixed(1)}" cy="${plotB - 5}" r="4"/>`;
+  }
+
+  const nx = x(o.now).toFixed(1);
+  s += `<line class="c-now" x1="${nx}" y1="${m.t}" x2="${nx}" y2="${plotB}" stroke-width="1.5" stroke-dasharray="4 3"/>`;
   el.innerHTML = s + '</svg>';
 }

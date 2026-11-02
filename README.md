@@ -22,7 +22,7 @@ Static files, no build step. To try it locally: `npx serve web`, then open the p
 1. Cloudflare dashboard, Workers & Pages, Create, Pages, Upload assets. Upload the **contents** of `web/` (or `dist/GlucoseAnywhere-web-v1.0.0.zip`). `_headers` must sit at the root of what you upload.
 2. Pages project, Custom domains, add `glucoseanywhere.com`.
 
-`_headers` sets a strict Content-Security-Policy: scripts and styles only from the site itself, network calls only to Dexcom's three Share hosts. Keep it that way. The saved Dexcom password lives in this origin's storage, so **never add third-party scripts (ads, analytics, widgets) to the web app's origin.**
+`_headers` sets a strict Content-Security-Policy: scripts and styles only from the site itself, network calls only to Dexcom's three Share hosts, plus the Google and Microsoft sign-in and file hosts used by the optional insulin-log sync. Keep it that way. The saved Dexcom password lives in this origin's storage, so **never add third-party scripts (ads, analytics, widgets) to the web app's origin.**
 
 ## Windows app
 
@@ -41,11 +41,11 @@ The exe is unsigned, so Windows SmartScreen will warn on first run (More info, R
 
 ## Privacy and verification
 
-Your sign-in and readings are sent only to Dexcom's servers, to sign in and fetch readings. The app has no accounts and adds no analytics or tracking. Like any website, the host (Cloudflare) sees that pages and files were requested, including IP address and browser, and shows the owner aggregate traffic counts. The web app's Settings, About section explains how to check this in your browser's network tab, and has a "Show what's stored" button listing everything saved on the device (the password is never displayed).
+Your sign-in and readings are sent only to Dexcom's servers, to sign in and fetch readings. The optional insulin log stays on the device unless the user links their own Google Drive or OneDrive, in which case only that log is sent there, directly from the browser (never through this site), until they disconnect. The app has no accounts and adds no analytics or tracking. Like any website, the host (Cloudflare) sees that pages and files were requested, including IP address and browser, and shows the owner aggregate traffic counts. The web app's Settings, About section explains how to check this in your browser's network tab, and has a "Show what's stored" button listing everything saved on the device (the password is never displayed).
 
 Where to look in the code:
 
-- `web/dexcom.js`: the only file that contacts Dexcom.
+- `web/dexcom.js`: the only file that contacts Dexcom. `web/sync.js`: the only file that contacts Google or Microsoft, and only if the user links a drive.
 - `web/store.js`: the only file that saves user data.
 - `web/_headers`: the Content-Security-Policy that stops the page connecting anywhere else.
 - `desktop/GlucoseAnywhere.Core/DexcomClient.cs`: the Windows app's only network code.
@@ -63,4 +63,12 @@ Where to look in the code:
 
 - Dexcom Share is an unofficial API and can change or stop at any time.
 - Don't use this in place of the Dexcom app's alarms.
+- The insulin page (web app) logs insulin and carbs on the device, draws insulin on board, and shows a bolus-wizard estimate once you enter your own carb ratio, correction factor and target. It is an estimate only; confirm doses with your care team. The log can be exported and imported as JSON; it is off by default, and optionally syncs to the user's own Google Drive or OneDrive.
+
+### Cloud sync of the insulin log (optional)
+
+Each user signs in to **their own** account; the log is stored as one JSON file in that account's private app folder. To enable it in your deployment, register an OAuth app and put the public client IDs in `web/sync-config.js` (a provider with no ID is hidden):
+
+- **OneDrive:** Entra admin center, App registrations, new registration for personal Microsoft accounts. Add a *Single-page application* redirect URI equal to your site origin with a trailing slash (e.g. `https://glucoseanywhere.com/`). Permissions: `Files.ReadWrite.AppFolder`, `offline_access`.
+- **Google Drive:** Google Cloud console, OAuth consent screen, then an OAuth client of type *Web application* with your origin as an authorized JavaScript origin and the same redirect URI. Scope: `drive.appdata`. Google's token lasts an hour, so the user taps Sync now / sign in again after that.
 - Readings are kept on the device for up to 90 days.

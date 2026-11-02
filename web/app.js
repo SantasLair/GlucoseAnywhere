@@ -1,8 +1,11 @@
 import { DexcomClient, DexcomError } from './dexcom.js';
-import { drawChart, chartFills } from './chart.js';
+import { drawChart, drawIobChart, chartFills } from './chart.js';
+import { configured, connect, finishSignIn, disconnect, connectedTo, syncNow, noteDeleted, needsReconnect, PROVIDERS } from './sync.js';
+import { curveParams, iobAt, cobAt, iobSeries, activityAt, activitySeries, wizardReady, wizard } from './insulin.js';
 import {
   loadPrefs, savePrefs, loadCreds, saveCreds, clearCreds,
   putReadings, getReadings, pruneReadings, forgetEverything, describeStorage,
+  putTreatments, getTreatments, deleteTreatment, requestPersistence,
   noteVisit, feedbackDue, dismissFeedback,
 } from './store.js';
 import {
@@ -21,6 +24,7 @@ if (![3, 6, 12, 24].includes(prefs.range)) prefs.range = 6;
 let creds = null;            // { username, password, region, remember, accountId?, sessionId? }
 let client = null;
 let readings = [];           // last 24 h, oldest first
+let treatments = [];         // insulin and carb log, last 24 h, oldest first: { id, t, kind, v }
 let status = { state: 'none', message: '' };   // none | ok | auth | error
 let tab = 'home';
 let fetching = false;
@@ -117,6 +121,10 @@ async function enterApp() {
   $('auth').hidden = true;
   $('app').hidden = false;
   readings = await getReadings(nowMs() - DAY_MS);
+  treatments = await getTreatments(nowMs() - DAY_MS);
+  applyInsulinOptional();
+  if (prefs.insulinOn) requestPersistence();
+  runSync();
   status = { state: readings.length ? 'ok' : 'none', message: '' };
   showTab('home');
   startPolling();
@@ -152,25 +160,30 @@ function showTab(name) {
   window.scrollTo(0, 0);
   if (name === 'home') renderHome();
   if (name === 'settings') renderSettings();
+  if (name === 'insulin') openInsulinPage();
   syncWakeLock();
 }
-// Settings is a page you open and close, not a tab. Opening adds a history entry, so the device's
+// Settings and Insulin are pages you open and close, not tabs. Opening adds a history entry, so the device's
 // Back button (and the browser's) closes it instead of leaving the app.
-function openSettings() {
-  if (tab === 'settings') return;
-  history.pushState({ ga: 'settings' }, '');
-  showTab('settings');
+function openPage(name) {
+  if (tab === name) return;
+  history.pushState({ ga: name }, '');
+  showTab(name);
 }
-function leaveSettings() {
+const openSettings = () => openPage('settings');
+const openInsulin = () => { if (prefs.insulinOn) openPage('insulin'); };
+function leavePage() {
   if (!creds) showAuth(); else showTab('home');
 }
-function closeSettings() {
-  if (history.state?.ga === 'settings') history.back();   // popstate then leaves the page
-  else leaveSettings();
+function closePage() {
+  if (history.state?.ga === tab) history.back();   // popstate then leaves the page
+  else leavePage();
 }
-window.addEventListener('popstate', () => { if (tab === 'settings') leaveSettings(); });
+window.addEventListener('popstate', () => { if (tab !== 'home') leavePage(); });
 $('settingsBtn').addEventListener('click', openSettings);
-$('settingsClose').addEventListener('click', closeSettings);
+$('settingsClose').addEventListener('click', closePage);
+$('insulinBtn').addEventListener('click', openInsulin);
+$('insulinClose').addEventListener('click', closePage);
 document.addEventListener('click', e => {
   const g = e.target.closest('[data-goto]');
   if (g && g.dataset.goto === 'settings') openSettings();
@@ -228,6 +241,7 @@ function stopPolling() { clearInterval(pollTimer); clearInterval(ageTimer); }
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible' || $('app').hidden) return;
+  if (connectedTo()) syncSoon();
   if (nowMs() - lastFetch > 30000) fetchNow();
   renderAll();
   syncWakeLock();
@@ -240,6 +254,7 @@ function renderAll() {
   if ($('app').hidden) return;
   if (tab === 'home') renderHome();
   if (tab === 'settings') renderDataLine();
+  if (tab === 'insulin') renderInsulin();
   if (!$('big').hidden) renderBig();
 }
 
@@ -299,7 +314,23 @@ function showFeedbackPrompt() {
     '<button data-fb-dismiss>Not now</button></span>';
 }
 
+// A phone held upright shows the home screen as one card, with the insulin figures in a bar at the bottom.
+const phoneQuery = window.matchMedia('(max-width: 600px) and (orientation: portrait)');
+phoneQuery.addEventListener?.('change', () => { if (!$('app').hidden && tab === 'home') renderHome(); });
+
+function renderHomeBar() {
+  const show = prefs.insulinOn;
+  $('homeBar').hidden = !show;
+  if (!show) return;
+  $('hbIob').textContent = fmtU(iobAt(doses(), nowMs(), curve()));
+  const w = wizardNow();
+  $('hbSuggestBox').hidden = !(w && w.units > 0);
+  if (w) $('hbSuggest').textContent = fmtDose(w.units);
+}
+$('hbBolus').addEventListener('click', openInsulin);
+
 function renderHome() {
+  renderHomeBar();
   renderBanner();
   const info = latestInfo();
   const val = $('gVal');
@@ -308,7 +339,7 @@ function renderHome() {
   $('gArrow').textContent = info ? info.arrow : '';
   $('gArrow').className = 'garrow ' + (info ? info.cls : '');
   $('gMeta').innerHTML = info
-    ? [info.delta && `<b>${info.delta}</b>`, unitsLabel(prefs.useMmol), info.age].filter(Boolean).join(' · ')
+    ? [info.delta && `<b>${info.delta}</b>`, unitsLabel(prefs.useMmol), info.age, ...insulinBits()].filter(Boolean).join(' · ')
     : (fetching ? 'Loading…' : 'No readings yet');
 
   for (const b of $('rangeTabs').children) b.classList.toggle('active', Number(b.dataset.h) === prefs.range);
@@ -422,6 +453,326 @@ $('bigFs').addEventListener('click', () => { if (fsElement()) fsExit(); else fsE
 // Leaving fullscreen (Back, Esc) keeps big mode open; only Close ends it.
 for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, updateFsButton);
 
+// ---------------------------------------------------------------- insulin
+/** Show or hide everything insulin-related to match the opt-in switch. */
+function applyInsulinOptional() {
+  $('insulinBtn').hidden = !prefs.insulinOn;
+  $('insulinBody').hidden = !prefs.insulinOn;
+  $('sInsulinOn').checked = !!prefs.insulinOn;
+  if (!prefs.insulinOn && tab === 'insulin') closePage();
+  if (!$('app').hidden && tab === 'home') renderHome();
+}
+$('sInsulinOn').addEventListener('change', e => {
+  prefs.insulinOn = e.target.checked;
+  savePrefs(prefs);
+  applyInsulinOptional();
+  if (prefs.insulinOn) { requestPersistence(); runSync(); }
+});
+
+const insulinSettings = () => ({
+  icr: prefs.icr, isf: prefs.isf, target: prefs.target,
+  step: prefs.step || 0.5, maxBolus: prefs.maxBolus || 10,
+});
+const curve = () => curveParams(prefs.peak || 75, (prefs.dia || 5) * 60);
+const doses = () => treatments.filter(r => r.kind === 'insulin');
+const meals = () => treatments.filter(r => r.kind === 'carbs');
+const fmtU = v => (Math.round(v * 100) / 100).toFixed(2);
+const fmtDose = v => String(Math.round(v * 100) / 100);
+
+let wBgEdited = false;   // the BG tile follows the sensor until the user types in it
+
+/** BG for the wizard in mg/dL: what's typed in the tile if edited, else the sensor if it's current. */
+function wizardBg(useTile) {
+  if (useTile && wBgEdited) {
+    const n = parseNum($('wBg').value);
+    const v = n == null ? null : Math.round(n * (prefs.useMmol ? MMOL : 1));
+    return { v: v != null && v >= 20 && v <= 600 ? v : null, src: 'manual' };
+  }
+  const info = latestInfo();
+  return info && !info.stale && info.latest.v >= 40 && info.latest.v <= 400 ? { v: info.latest.v, src: 'cgm', info } : { v: null, src: 'none' };
+}
+
+/** The wizard's answer, or null when it isn't set up or there is nothing to base a dose on.
+ *  useTile: take BG from the Bolus screen's tile; otherwise it's the sensor reading (the home line). */
+function wizardNow(carbs = 0, useTile = false) {
+  if (!wizardReady(prefs)) return null;
+  const bg = wizardBg(useTile);
+  if (bg.v == null && !(carbs > 0)) return null;
+  return { ...wizard({ bg: bg.v, carbs, iob: iobAt(doses(), nowMs(), curve()) }, insulinSettings()), bg };
+}
+
+/** Extra items for the home screen's reading line: insulin on board, and the suggestion if there is one. */
+function insulinBits() {
+  if (!prefs.insulinOn || phoneQuery.matches) return [];   // on a phone the bottom bar shows these
+  if (!treatments.length && !wizardReady(prefs)) return [];
+  const bits = [`IOB ${fmtU(iobAt(doses(), nowMs(), curve()))} u`];
+  const w = wizardNow();
+  if (w && w.units > 0) bits.push(`<b>Suggest ${fmtDose(w.units)} u</b>`);
+  return bits;
+}
+
+function openInsulinPage() {
+  wBgEdited = false;
+  $('wCarbs').value = '';
+  setMsg('logError');
+  resetLogTime();
+  renderInsulin();
+}
+
+const pad = n => String(n).padStart(2, '0');
+const toLocalInput = t => {
+  const d = new Date(t);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+let logTimeEdited = false;
+function resetLogTime() { $('lTime').value = toLocalInput(nowMs()); logTimeEdited = false; }
+$('lTime').addEventListener('input', () => { logTimeEdited = true; });
+
+$('iobGraphOn').addEventListener('change', e => { prefs.iobGraph = e.target.checked; savePrefs(prefs); renderInsulin(); });
+$('iobKind').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  prefs.iobKind = b.dataset.k;
+  savePrefs(prefs);
+  renderInsulin();
+});
+
+function renderInsulin() {
+  const now = nowMs(), c = curve();
+  $('iobVal').textContent = fmtU(iobAt(doses(), now, c));
+  $('cobVal').textContent = Math.round(cobAt(meals(), now, prefs.carbHours || 3));
+  const act = activityAt(doses(), now, c);
+  $('actNow').textContent = act > 0.005
+    ? `Working now: ${fmtU(act)} u/h${prefs.isf > 0 ? `, lowering glucose about ${fmtGlucoseNum(act * prefs.isf, prefs.useMmol)} ${unitsLabel(prefs.useMmol)} per hour` : ''}.`
+    : 'No insulin working right now.';
+  $('iobGraphOn').checked = !!prefs.iobGraph;
+  $('iobGraphBox').hidden = !prefs.iobGraph;
+  if (prefs.iobGraph) {
+    const kind = prefs.iobKind === 'activity' ? 'activity' : 'iob';
+    for (const b of $('iobKind').children) b.classList.toggle('active', b.dataset.k === kind);
+    const start = now - 3 * 3600e3, end = now + 5 * 3600e3;
+    drawIobChart($('iobChart'), {
+      kind, series: (kind === 'iob' ? iobSeries : activitySeries)(doses(), start, end, c),
+      insulin: doses(), carbs: meals(), start, end, now,
+    });
+    $('iobKey').innerHTML = (kind === 'iob'
+      ? '<span class="key key-iob"></span>Insulin on board (still to work)'
+      : '<span class="key key-act"></span>Activity (how fast it is working)') +
+      ' <span class="key key-dose"></span>Dose <span class="key key-carb"></span>Carbs';
+  }
+  renderWizard();
+  renderRecent();
+}
+
+function renderWizard() {
+  const ready = wizardReady(prefs);
+  $('wizSetup').hidden = ready;
+  $('wizBody').hidden = !ready;
+  if (!ready) return;
+  const carbs = Math.max(0, parseNum($('wCarbs').value) ?? 0);
+  $('wBgUnit').textContent = unitsLabel(prefs.useMmol);
+  if (!wBgEdited) {
+    const cgm = wizardBg(false);
+    $('wBg').value = cgm.v == null ? '' : fmtGlucoseNum(cgm.v, prefs.useMmol);
+  }
+  const w = wizardNow(carbs, true);
+  const bg = w?.bg ?? wizardBg(true);
+  $('wBgSrc').textContent = wBgEdited ? '(entered)' : bg.src === 'cgm' ? `(sensor, ${bg.info.age})` : '(no current reading)';
+  $('wBgReset').hidden = !wBgEdited;
+
+  const row = (k, v, cls = '') => `<div class="${cls}"><dt>${k}</dt><dd>${v}</dd></div>`;
+  const sign = v => `${v < 0 ? '−' : '+'}${fmtU(Math.abs(v))} u`;
+  let rows = '';
+  if (w) {
+    rows += row(`Food${carbs ? ` (${fmtDose(carbs)} g)` : ''}`, `${fmtU(w.meal)} u`);
+    rows += row(`Correction${bg.v != null ? ` (${fmtGlucoseNum(bg.v, prefs.useMmol)} vs ${fmtGlucoseNum(prefs.target, prefs.useMmol)})` : ''}`, sign(w.correction));
+    rows += row('Insulin on board', `−${fmtU(w.iob)} u`);
+    rows += row('Total', `${fmtU(Math.max(0, w.raw))} u`, 'total');
+  }
+  $('wizRows').innerHTML = rows;
+  $('wizUnits').textContent = w ? fmtDose(w.units) : '--';
+  $('wizLog').disabled = !w;
+
+  let warn = '';
+  if (!w) warn = 'Enter carbs or a BG to calculate.';
+  else if (bg.v != null && bg.v < prefs.low) warn = 'BG is below your low limit. Treat the low before dosing.';
+  else if (bg.v == null) warn = 'No BG, so this dose is for food only.';
+  else if (w.capped) warn = `Capped at your max bolus of ${fmtDose(prefs.maxBolus)} u.`;
+  else if (w.raw < 0 && !carbs) warn = 'No dose: insulin on board covers the correction, or BG is under target.';
+  $('wizWarn').textContent = warn;
+}
+$('wCarbs').addEventListener('input', renderWizard);
+$('wBg').addEventListener('input', () => { wBgEdited = true; renderWizard(); });
+$('wBgReset').addEventListener('click', () => { wBgEdited = false; renderWizard(); });
+
+$('wizLog').addEventListener('click', () => {
+  const carbs = Math.max(0, parseNum($('wCarbs').value) ?? 0);
+  const w = wizardNow(carbs, true);
+  if (!w) return;
+  $('lIns').value = w.units ? fmtDose(w.units) : '';
+  $('lCarbs').value = carbs || '';
+  resetLogTime();
+  $('logCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  $('lIns').focus();
+});
+
+$('logForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const ins = parseNum($('lIns').value) ?? 0, carbs = parseNum($('lCarbs').value) ?? 0;
+  const t = logTimeEdited ? new Date($('lTime').value).getTime() : nowMs();
+  if (!(ins > 0) && !(carbs > 0)) return setMsg('logError', 'Enter insulin units, carbs, or both.');
+  if (ins < 0 || carbs < 0 || ins > 100 || carbs > 500) return setMsg('logError', 'Those amounts look wrong. Insulin up to 100 u, carbs up to 500 g.');
+  if (!Number.isFinite(t) || t > nowMs() + 5 * 60e3) return setMsg('logError', 'Choose a time that is not in the future.');
+  if (t < nowMs() - DAY_MS) return setMsg('logError', 'Entries older than 24 hours are not shown, so choose a more recent time.');
+  setMsg('logError');
+  const rows = await putTreatments([
+    ...(ins > 0 ? [{ t, kind: 'insulin', v: ins }] : []),
+    ...(carbs > 0 ? [{ t, kind: 'carbs', v: carbs }] : []),
+  ]);
+  treatments = [...treatments, ...rows].sort((a, b) => a.t - b.t);
+  $('lIns').value = $('lCarbs').value = $('wCarbs').value = '';
+  wBgEdited = false;
+  resetLogTime();
+  renderInsulin();
+  syncSoon();
+  toast('Saved.');
+});
+
+function renderRecent() {
+  const list = [...treatments].reverse();
+  $('recentEmpty').hidden = list.length > 0;
+  $('recentList').innerHTML = list.map(r => {
+    const ins = r.kind === 'insulin';
+    return `<li><span class="what"><b class="${ins ? 'ins' : 'car'}">${fmtDose(r.v)} ${ins ? 'u insulin' : 'g carbs'}</b><br>` +
+      `<span class="when">${esc(fmtClock(r.t))} · ${esc(fmtAge(nowMs() - r.t))}</span></span>` +
+      `<button class="del" data-del="${esc(r.id)}" aria-label="Delete this entry" title="Delete">×</button></li>`;
+  }).join('');
+}
+$('recentList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-del]');
+  if (!b || !confirm('Delete this entry?')) return;
+  await deleteTreatment(b.dataset.del);
+  noteDeleted(b.dataset.del);
+  syncSoon();
+  treatments = treatments.filter(r => r.id !== b.dataset.del);
+  renderInsulin();
+});
+
+// Settings fields. Each saves as soon as its value is valid; for the three dose-affecting ones, blank clears it.
+const mgOf = v => v * (prefs.useMmol ? MMOL : 1);
+const numField = (id, key, { min, max, blank = false, toStore = v => v, toShow = v => String(v) }) => {
+  $(id).addEventListener('input', e => {
+    const n = parseNum(e.target.value);
+    if (n == null && !blank) return;
+    const v = n == null ? null : toStore(n);
+    if (v != null && !(v >= min && v <= max)) return setMsg('iError', 'One of those values is out of range.');
+    setMsg('iError');
+    prefs[key] = v;
+    savePrefs(prefs);
+  });
+  return () => { $(id).value = prefs[key] == null ? '' : toShow(prefs[key]); };
+};
+const showGlucoseish = v => (prefs.useMmol ? (v / MMOL).toFixed(2).replace(/\.?0+$/, '') : String(Math.round(v * 10) / 10));
+// ---- optional cloud sync of the log (sync.js). Never blocks logging: a failed sync just shows a message.
+let syncState = { busy: false, error: '' };
+let syncTimer = null;
+
+async function runSync() {
+  if (!prefs.insulinOn || !connectedTo() || syncState.busy) return;
+  syncState = { busy: true, error: '' };
+  renderSyncLine();
+  try {
+    const r = await syncNow();
+    treatments = await getTreatments(nowMs() - DAY_MS);
+    if (r.added) toast(`Synced: ${r.added} new ${r.added === 1 ? 'entry' : 'entries'}.`);
+  } catch (err) {
+    syncState.error = needsReconnect(err) ? 'Sign in again to keep syncing.' : "Couldn't reach your drive. Your log is safe on this device.";
+  }
+  syncState.busy = false;
+  renderAll();
+  renderSyncLine();
+}
+/** Sync shortly after a change, so several quick edits make one upload. */
+function syncSoon() {
+  if (!prefs.insulinOn || !connectedTo()) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(runSync, 3000);
+}
+
+function renderSyncLine() {
+  const p = connectedTo();
+  const avail = configured();
+  $('syncMs').hidden = !!p || !avail.includes('microsoft');
+  $('syncGoogle').hidden = !!p || !avail.includes('google');
+  $('syncNow').hidden = !p;
+  $('syncOff').hidden = !p;
+  $('syncNow').disabled = syncState.busy;
+  const last = loadSyncLast();
+  $('syncLine').textContent = p
+    ? `Linked to ${PROVIDERS[p].name}.${last ? ` Last synced ${fmtClock(last)}.` : ''} ${syncState.busy ? 'Syncing…' : syncState.error}`
+    : avail.length ? 'Not linked.' : 'Cloud sync is not set up in this copy of the app.';
+}
+const loadSyncLast = () => { try { return JSON.parse(localStorage.getItem('ga.sync'))?.last ?? 0; } catch { return 0; } };
+$('syncMs').addEventListener('click', () => connect('microsoft'));
+$('syncGoogle').addEventListener('click', () => connect('google'));
+$('syncNow').addEventListener('click', runSync);
+$('syncOff').addEventListener('click', () => {
+  if (!confirm('Disconnect from your drive? The log stays on this device, and the copy in your drive is left as it is.')) return;
+  disconnect();
+  syncState = { busy: false, error: '' };
+  renderSyncLine();
+});
+
+const insulinFields = [
+  numField('sIcr', 'icr', { min: 1, max: 150, blank: true }),
+  numField('sIsf', 'isf', { min: 5, max: 400, blank: true, toStore: mgOf, toShow: showGlucoseish }),
+  numField('sTarget', 'target', { min: 70, max: 200, blank: true, toStore: v => Math.round(mgOf(v)), toShow: v => fmtGlucoseNum(v, prefs.useMmol) }),
+  numField('sMax', 'maxBolus', { min: 1, max: 50 }),
+  numField('sDia', 'dia', { min: 3, max: 8 }),
+  numField('sPeak', 'peak', { min: 30, max: 120 }),
+  numField('sCarbH', 'carbHours', { min: 1, max: 8 }),
+];
+$('sStep').addEventListener('change', e => { prefs.step = Number(e.target.value); savePrefs(prefs); });
+function renderInsulinSettings() {
+  for (const f of insulinFields) f();
+  $('sStep').value = String(prefs.step);
+  renderSyncLine();
+  $('sIsfLabel').textContent = `Correction (${unitsLabel(prefs.useMmol)} per unit)`;
+}
+
+function download(name, type, text) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+$('exportBtn').addEventListener('click', async () => {
+  const rows = await getTreatments(0);
+  if (!rows.length) return toast('Nothing logged to export.', true);
+  download('glucoseanywhere-insulin-log.json', 'application/json',
+    JSON.stringify({ app: 'GlucoseAnywhere', version: 1, treatments: rows }, null, 1));
+});
+$('importBtn').addEventListener('click', () => $('importFile').click());
+$('importFile').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    const rows = (data.treatments ?? [])
+      .filter(r => r && typeof r.id === 'string' && Number.isFinite(r.t) && (r.kind === 'insulin' || r.kind === 'carbs') && r.v > 0 && r.v < 1000)
+      .map(({ id, t, kind, v }) => ({ id, t, kind, v }));
+    if (!rows.length) return toast('No log entries found in that file.', true);
+    await putTreatments(rows);   // an id already here is replaced, so importing twice adds nothing
+    treatments = await getTreatments(nowMs() - DAY_MS);
+    syncSoon();
+    toast(`Imported ${rows.length} entries.`);
+  } catch { toast("That file isn't an insulin log.", true); }
+});
+
 // ---------------------------------------------------------------- settings
 function renderSettings() {
   setMsg('sError');
@@ -436,6 +787,8 @@ function renderSettings() {
   $('sStartBig').checked = !!prefs.startBig;
   $('sLayout').value = prefs.layout;
   $('sStayAwake').checked = !!prefs.stayAwake;
+  renderInsulinSettings();
+  applyInsulinOptional();
   $('sStayAwake').disabled = !navigator.wakeLock;
   $('wakeStatus').textContent = navigator.wakeLock
     ? 'This browser can keep the screen on while the big number or chart view is open.'
@@ -452,7 +805,7 @@ $('sStayAwake').addEventListener('change', e => { prefs.stayAwake = e.target.che
 
 function renderDataLine() {
   if (!readings.length) { $('dataLine').textContent = 'No readings stored on this device yet.'; return; }
-  $('dataLine').textContent = `${readings.length} readings from the last 24 hours are shown. Older readings are kept on this device for up to 90 days.`;
+  $('dataLine').textContent = `${readings.length} readings from the last 24 hours are shown. Older readings are kept on this device for up to 90 days${prefs.insulinOn ? ', and the insulin log until you delete it' : ''}.`;
 }
 
 $('sTheme').addEventListener('change', e => {
@@ -518,7 +871,7 @@ $('forgetBtn').addEventListener('click', async () => {
   if (!confirm('Remove your sign-in, readings and settings from this device?')) return;
   stopPolling();
   await forgetEverything();
-  creds = null; client = null; readings = [];
+  creds = null; client = null; readings = []; treatments = [];
   prefs = loadPrefs();
   status = { state: 'none', message: '' };
   showAuth();
@@ -531,11 +884,13 @@ document.addEventListener('keydown', e => {
   if (e.target.closest?.('input, select, textarea')) return;
   const key = e.key.toLowerCase();
   const bigOpen = !$('big').hidden;
-  if (tab === 'settings') { if (key === 'escape') closeSettings(); return; }
+  if (tab !== 'home') { if (key === 'escape') closePage(); return; }
   if (key === 'escape') {
     if (bigOpen && !fsElement()) exitBig();      // the first Esc leaves fullscreen (the browser handles it)
   } else if (key === 's' && !bigOpen) {
     openSettings();
+  } else if (key === 'i' && !bigOpen) {
+    openInsulin();
   } else if (key === 'c' && !bigOpen) {
     setLayout(prefs.layout === 'chart' ? 'standard' : 'chart');
   } else if (key === 'b') {
@@ -569,7 +924,7 @@ $('installBtn').addEventListener('click', async () => {
 // app comes back to the foreground) compare the ETags of the app's files with the ones seen at start-up.
 // When they differ, reload: straight away if the app is in the background, otherwise after a minute with
 // no touches, back into big-number mode if that's where it was. Saved sign-in and readings are untouched.
-const UPDATE_FILES = ['./', 'app.js', 'store.js', 'dexcom.js', 'chart.js', 'format.js', 'theme.js', 'app.css'];
+const UPDATE_FILES = ['./', 'app.js', 'store.js', 'dexcom.js', 'chart.js', 'insulin.js', 'sync.js', 'sync-config.js', 'format.js', 'theme.js', 'app.css'];
 const UPDATE_CHECK_MS = 3600e3, UPDATE_IDLE_MS = 60e3;
 let versionTag = null, lastTouch = 0, updateTimer = null;   // 0: nobody has touched it yet
 
@@ -616,7 +971,13 @@ function boot() {
   }
   checkForUpdate();
   applyLayout();
+  applyInsulinOptional();
   creds = loadCreds();
-  if (creds) enterApp(); else showAuth();
+  // Coming back from Google or Microsoft's sign-in page: store the link first, then open as usual.
+  finishSignIn().then(r => {
+    if (creds) enterApp(); else showAuth();
+    if (r?.error) toast(r.error, true);
+    else if (r?.provider) { toast(`Linked to ${PROVIDERS[r.provider].name}.`); if (creds) { openInsulin(); } }
+  });
 }
 boot();
